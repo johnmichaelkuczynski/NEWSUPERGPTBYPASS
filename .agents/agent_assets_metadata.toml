@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "TNawdYuv12ZQncNeNiSEj"
+uri = "file://promo/audio/promo_music.mp3"
+type = "audio"
+title = "gptbypass_promo"
+
+[[outputs]]
+id = "46FR5Z_qtgmclrK9gjLJ_"
+uri = "file://promo/GPT_Bypass_Promo.mp4"
+type = "video"
+title = "GPT Bypass — Promotional Video"
