@@ -6,20 +6,15 @@ GPT Bypass is a comprehensive AI text rewriting application designed to transfor
 
 ## Recent Changes
 
-**Payments Removed & Google Login Added (July 9, 2026 - Latest)**
-- Removed all payment/credit functionality: Stripe packages uninstalled, `payments` table dropped, `credits`/`stripeCustomerId` columns removed from users, `creditsPaid` removed from rewrite jobs, pricing tiers and paywall logic deleted
-- Added Google login via Clerk (`@clerk/clerk-react`, frontend-only)
-- `ClerkProvider` wraps the app in `client/src/main.tsx` using `VITE_CLERK_PUBLISHABLE_KEY` secret
-- Header shows a Sign In button (modal, includes Google) for signed-out users and Clerk's `UserButton` avatar menu when signed in
-- App remains fully usable as a guest; authentication is an optional enhancement
+**All Login/Auth Removed (July 10, 2026 - Latest)**
+- Ripped out every authentication system per explicit user request (a new auth plan is coming later): Clerk (`@clerk/clerk-react`, `ClerkProvider`, Sign In / UserButton UI), legacy Passport.js local strategy, express-session, connect-pg-simple session store
+- Dropped the `users` table entirely and removed `userId` foreign keys from `documents` and `rewriteJobs` — these tables are now anonymous/global
+- `server/storage.ts` no longer has any user/session methods; `IStorage` only covers document and rewrite job CRUD
+- App has zero auth of any kind right now — fully open, no accounts, no sign-in UI
 
-**User Authentication & Persistence System (October 3, 2025)**
-- Optional authentication system - site remains fully accessible to guest users
-- **Database Setup**: PostgreSQL database with Drizzle ORM, migrated from memory storage to persistent storage
-- **Legacy local auth**: Passport.js endpoints (register/login/logout) with scrypt password hashing remain in the backend; primary sign-in UI now uses Clerk
-- **User Dashboard**: View saved materials (documents and rewrite jobs) when logged in at /dashboard route
-- **Material Persistence**: Documents and rewrite jobs automatically save with userId when user is authenticated
-- **Session Management**: Express-session with PostgreSQL store (connect-pg-simple)
+**Payments Removed & Google Login Added (July 9, 2026)**
+- Removed all payment/credit functionality: Stripe packages uninstalled, `payments` table dropped, `credits`/`stripeCustomerId` columns removed from users, `creditsPaid` removed from rewrite jobs, pricing tiers and paywall logic deleted
+- Added Google login via Clerk — later ripped out (see entry above)
 
 **GPTZero Integration Fixed (October 2, 2025)**
 - Successfully updated GPTZero API key with proper authentication
@@ -55,20 +50,20 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack Query (React Query) for server state management and caching
 - **Routing**: Wouter for lightweight client-side routing
 - **Form Handling**: React Hook Form with Zod validation for type-safe form management
-- **Authentication UI**: Clerk (`@clerk/clerk-react`) with modal sign-in including Google login
+- **Authentication UI**: None — all login/auth UI has been removed (see Recent Changes); app is fully open
 
 ### Backend Architecture
-- **Express.js API**: RESTful API server handling file uploads, text processing, AI provider integrations, and user authentication
-- **Authentication**: Legacy Passport.js local strategy endpoints (scrypt hashing, session-based); Clerk handles the primary sign-in UI on the frontend
+- **Express.js API**: RESTful API server handling file uploads, text processing, and AI provider integrations
+- **Authentication**: None — no login system currently exists in the app
 - **File Processing**: Multer-based file upload system supporting TXT, PDF, DOC/DOCX formats up to 50MB
 - **Service Layer Pattern**: Modular services for file processing, text chunking, GPTZero integration, and AI provider management
-- **Database Storage**: PostgreSQL with Drizzle ORM for persistent user data and generated materials storage
-- **Middleware Stack**: Session management, request logging, JSON parsing, authentication, and error handling middleware
+- **Database Storage**: PostgreSQL with Drizzle ORM for persistent document/job data
+- **Middleware Stack**: Request logging, JSON parsing, and error handling middleware
 
 ### Data Architecture
 - **Drizzle ORM**: Type-safe database toolkit with active PostgreSQL integration for persistent storage
-- **Schema Design**: Schemas for users, documents, and rewrite jobs with proper relationships (no payment tables)
-- **Material Storage**: Documents and rewrite jobs linked to user accounts via foreign keys for authenticated users
+- **Schema Design**: Schemas for documents and rewrite jobs only (no users, payment, or session tables)
+- **Material Storage**: Documents and rewrite jobs are anonymous/global (no user association)
 - **Text Chunking**: Intelligent text segmentation for large documents (>500 words) with configurable overlap
 - **Job Management**: Async rewrite job processing with status tracking and result storage
 
@@ -109,9 +104,6 @@ Preferred communication style: Simple, everyday language.
 - **Anthropic API**: Claude Sonnet 4 integration for alternative AI processing
 - **GPTZero API**: AI detection scoring service for input and output analysis
 - **DeepSeek & Perplexity**: Additional AI provider support (configured for future implementation)
-
-### Authentication
-- **Clerk**: Frontend authentication with Google login via `@clerk/clerk-react`; requires `VITE_CLERK_PUBLISHABLE_KEY` secret
 
 ### Database
 - **PostgreSQL**: Configured via Neon Database serverless connection (ready for production)

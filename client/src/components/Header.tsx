@@ -1,6 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 
 interface HeaderProps {
   provider: string;
@@ -46,16 +45,6 @@ export default function Header({ provider, onProviderChange, onShowApiKeys }: He
                 <i className="fas fa-envelope mr-2"></i>Contact Us
               </Button>
             </a>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="default" size="sm" data-testid="button-sign-in">
-                  <i className="fas fa-sign-in-alt mr-2"></i>Sign In
-                </Button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
           </div>
         </div>
       </div>
