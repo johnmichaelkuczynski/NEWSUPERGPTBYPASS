@@ -1,0 +1,1 @@
+- [Anthropic model retirement](anthropic-model-retirement.md) — pinned Anthropic model IDs can 404 after a retirement; verify live via /v1/models before assuming code is broken.

@@ -4,13 +4,13 @@ import Anthropic from '@anthropic-ai/sdk';
 /*
 <important_code_snippet_instructions>
 The newest OpenAI model is "gpt-4o" which was released May 13, 2024. Do not change this unless explicitly requested by the user.
-The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229". 
+The newest Anthropic model is "claude-sonnet-5". The prior default "claude-sonnet-4-20250514" was retired by Anthropic (404 not_found_error), confirmed via a live /v1/models lookup on 2026-07-10.
 </important_code_snippet_instructions>
 */
 
 // <important_do_not_delete>
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
-const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 // </important_do_not_delete>
 
 const openai = new OpenAI({
@@ -187,7 +187,6 @@ export class AIProviderService {
           { role: "user", content: prompt }
         ],
         max_tokens: 4000,
-        temperature: 0.7,
       });
 
       console.log("🔥 Anthropic response received, length:", response.content[0].text?.length || 0);
