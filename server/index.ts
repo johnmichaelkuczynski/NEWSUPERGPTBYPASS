@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pdfRouter from "./routes/pdf";
+import { setupAuth } from "./auth";
 
 const app = express();
 
@@ -39,9 +40,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  setupAuth(app);
+
   // Register PDF route first
   app.use("/api/pdf", pdfRouter);
-  
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

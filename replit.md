@@ -6,7 +6,17 @@ GPT Bypass is a comprehensive AI text rewriting application designed to transfor
 
 ## Recent Changes
 
-**All Login/Auth Removed (July 10, 2026 - Latest)**
+**Google OAuth Login Reinstated via Passport.js (July 10, 2026 - Latest)**
+- Added back a canonical Passport.js Google OAuth implementation in `server/auth.ts` (session-based, `express-session` + `connect-pg-simple` backed by Postgres `user_sessions` table)
+- Recreated `users` table (`id`, `username`, `googleId`, `email`, `displayName`) and a `visits` table for login analytics — both use UUID varchar ids consistent with `documents`/`rewriteJobs`
+- `server/storage.ts` regained user/visit CRUD: `getUserById`, `getUserByGoogleId`, `getUserByEmail`, `createUserWithGoogle`, `updateUserGoogle`, `recordVisit`, `getVisits`, `getVisitTimestampsSince`
+- Callback URL and trusted hosts are derived dynamically from `REPLIT_DOMAINS`/`REPLIT_DEV_DOMAIN` at runtime — no hardcoded domain, so it auto-adapts across dev preview, `.replit.app`, and any future custom domain
+- Credentials read from `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (already present in Secrets); `SESSION_SECRET` also present
+- Admin visitor analytics endpoint (`/api/admin/visits`) restricted via `isAdmin` middleware to a single hardcoded owner email
+- Frontend: `useAuth` hook (`client/src/hooks/use-auth.ts`) + `AuthControls` in `Header.tsx` — shows "Sign in with Google" link when signed out, and name + "Log out" button when signed in. The app remains fully usable as a guest; login is optional
+- This is a plain Passport/Express implementation — NOT Clerk, NOT Replit Auth, NOT Auth.js
+
+**All Login/Auth Removed (July 10, 2026)**
 - Ripped out every authentication system per explicit user request (a new auth plan is coming later): Clerk (`@clerk/clerk-react`, `ClerkProvider`, Sign In / UserButton UI), legacy Passport.js local strategy, express-session, connect-pg-simple session store
 - Dropped the `users` table entirely and removed `userId` foreign keys from `documents` and `rewriteJobs` — these tables are now anonymous/global
 - `server/storage.ts` no longer has any user/session methods; `IStorage` only covers document and rewrite job CRUD
