@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import TextBox from "@/components/TextBox";
@@ -36,6 +36,32 @@ export default function Home() {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   const [lastJobId, setLastJobId] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      setSidebarWidth(Math.max(160, Math.min(600, dragStartWidth.current + delta)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [sidebarWidth]);
 
   const { toast } = useToast();
 
@@ -214,21 +240,31 @@ export default function Home() {
       />
 
       <div className="flex h-screen pt-16">
-        <LeftSidebar
-          selectedPresets={selectedPresets}
-          onPresetsChange={setSelectedPresets}
-          selectedStyleSample={selectedStyleSample}
-          onStyleSampleSelect={handleStyleSampleSelect}
-          onContentSampleSelect={(content) => {
-            setContentMixText(content);
-            setMixingMode(styleText.trim() ? 'both' : 'content');
-            toast({ description: "Writing sample sent to Content Box successfully!" });
-          }}
+        {/* Resizable left sidebar */}
+        <div style={{ width: sidebarWidth, minWidth: 160, maxWidth: 600, flexShrink: 0 }} className="overflow-hidden">
+          <LeftSidebar
+            selectedPresets={selectedPresets}
+            onPresetsChange={setSelectedPresets}
+            selectedStyleSample={selectedStyleSample}
+            onStyleSampleSelect={handleStyleSampleSelect}
+            onContentSampleSelect={(content) => {
+              setContentMixText(content);
+              setMixingMode(styleText.trim() ? 'both' : 'content');
+              toast({ description: "Writing sample sent to Content Box successfully!" });
+            }}
+          />
+        </div>
+
+        {/* Drag handle */}
+        <div
+          onMouseDown={onDragStart}
+          className="w-1.5 flex-shrink-0 bg-gray-200 hover:bg-blue-400 cursor-col-resize transition-colors active:bg-blue-500"
+          title="Drag to resize panel"
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto min-w-0">
           <div className="p-6">
-            <div className="flex flex-col gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <TextBox
                 title="Input Text (Box A)"
                 icon="fas fa-upload"
