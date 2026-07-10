@@ -4,54 +4,22 @@
 
 GPT Bypass is a comprehensive AI text rewriting application designed to transform AI-generated content to bypass detection tools. The system provides surgical style mimicking capabilities using multiple AI providers (OpenAI, Anthropic, DeepSeek, Perplexity) and integrates with GPTZero for AI detection scoring. Users can upload documents, apply style samples, customize rewrite instructions, and process text through intelligent chunking for large documents.
 
-## Recent Changes (January 2025)
+## Recent Changes
 
-**State Persistence Across Stripe Checkout (October 4, 2025 - Latest)**
-- Implemented localStorage-based state preservation that saves rewrites during payment flow
-- **Automatic State Saving**: When user clicks "Buy Credits" (paywall banner or header), all rewrite data is saved to localStorage
-- **Complete State Capture**: Preserves input text, output text, style text, content mix, custom instructions, selected presets, AI scores, and job ID
-- **Seamless Restoration**: On return from Stripe checkout, automatically restores entire rewrite session
-- **User Notification**: Shows "Rewrite Restored" toast notification when state is successfully restored
-- **Auto-Cleanup**: Saved state is cleared after restoration to prevent stale data
-- **Unified Navigation**: Shared `handleNavigateToPricing` callback used by both paywall banner and header pricing links
-- **Confirmed Working**: User-tested and verified end-to-end flow
-
-**Paywall System Improvements (October 4, 2025)**
-- Fixed "Buy Credits" button in paywall banner to be clickable and route to /pricing page
-- Implemented variable truncation for better user experience:
-  - 80% preview for outputs ≤50 words (very generous for short content)
-  - 65% preview for 51-100 words
-  - 55% preview for 101-200 words
-  - 45% preview for 201-400 words
-  - 40% preview for 401-600 words
-  - 35% preview for >600 words (30-50% range for long content)
-- Enhanced credit deduction security: `creditsPaid` flag only set if deduction actually succeeds
-- Consistent `truncateForPaywall()` function applied across all 6 endpoints: `/api/rewrite`, `/api/re-rewrite`, `/api/chat`, `/api/jobs/:id`, `/api/jobs`, `/api/user/materials`
-- Prevents bypass where credit deduction errors could leak full output to users
-
-**Stripe Payment System with Atomic Credit Fulfillment (October 4, 2025)**
-- Implemented production-ready Stripe payment integration with database transactions for atomic credit fulfillment
-- **Payment Tiers**: ZHI 1-4 credit packages at $5 (500 credits), $10 (1,050 credits), $25 (2,750 credits), $50 (5,750 credits), $100 (12,000 credits)
-- **Transactional Processing**: Database transactions wrap payment insert and credit increment for atomicity (both succeed or both roll back)
-- **Idempotency Protection**: Unique constraint on `stripe_payment_intent_id` prevents duplicate credit grants from concurrent requests
-- **Dual Fulfillment**: Both `/api/verify-payment` endpoint and Stripe webhook handle credit fulfillment with shared transactional logic
-- **Atomic Credit Increment**: SQL-level `UPDATE users SET credits = credits + $1` prevents read-modify-write race conditions
-- **Error Handling**: Unique constraint violations caught gracefully, indicating payment already processed
-- **Payment Tracking**: `payments` table stores all successful transactions with Stripe payment intent ID, user ID, credits, and amount
-- **Real-time Updates**: Frontend invalidates user query cache after payment for immediate credit balance refresh
-- **Security**: Payment verification confirms Stripe payment status and user ownership before granting credits
+**Payments Removed & Google Login Added (July 9, 2026 - Latest)**
+- Removed all payment/credit functionality: Stripe packages uninstalled, `payments` table dropped, `credits`/`stripeCustomerId` columns removed from users, `creditsPaid` removed from rewrite jobs, pricing tiers and paywall logic deleted
+- Added Google login via Clerk (`@clerk/clerk-react`, frontend-only)
+- `ClerkProvider` wraps the app in `client/src/main.tsx` using `VITE_CLERK_PUBLISHABLE_KEY` secret
+- Header shows a Sign In button (modal, includes Google) for signed-out users and Clerk's `UserButton` avatar menu when signed in
+- App remains fully usable as a guest; authentication is an optional enhancement
 
 **User Authentication & Persistence System (October 3, 2025)**
-- Implemented complete optional authentication system - site remains fully accessible to guest users
+- Optional authentication system - site remains fully accessible to guest users
 - **Database Setup**: PostgreSQL database with Drizzle ORM, migrated from memory storage to persistent storage
-- **Secure Authentication**: Passport.js integration with scrypt password hashing, session management, and secure cookie handling
-- **Auth Endpoints**: Registration, login, logout with proper validation using Zod schemas and JSON error responses
-- **Security Hardening**: All user responses sanitized to exclude hashed passwords, request validation on all auth routes
-- **Frontend Integration**: Login/register UI in header with AuthProvider hook, seamless user experience
+- **Legacy local auth**: Passport.js endpoints (register/login/logout) with scrypt password hashing remain in the backend; primary sign-in UI now uses Clerk
 - **User Dashboard**: View saved materials (documents and rewrite jobs) when logged in at /dashboard route
 - **Material Persistence**: Documents and rewrite jobs automatically save with userId when user is authenticated
-- **Guest Access**: Full application functionality available without login - authentication is optional enhancement
-- **Session Management**: Express-session with PostgreSQL store (connect-pg-simple) for production-ready session persistence
+- **Session Management**: Express-session with PostgreSQL store (connect-pg-simple)
 
 **GPTZero Integration Fixed (October 2, 2025)**
 - Successfully updated GPTZero API key with proper authentication
@@ -63,27 +31,16 @@ GPT Bypass is a comprehensive AI text rewriting application designed to transfor
 - Dedicated `/api/pdf/extract` endpoint using multer memory storage
 - Clean text extraction using pdf-parse library
 - Binary corruption issues fully resolved - PDFs display readable text
-- "Completely de novo" implementation as required
 
 **Advanced Preset System Implementation**
-- Added comprehensive PRESET_TEXT mapping with 40+ precise rewrite instructions
-- Implemented expandPresets function for combo preset handling ("Lean & Sharp", "Analytic")
-- Created unified buildRewritePrompt function replacing individual provider prompt logic
-- Added "Advanced Techniques" category with 8 sophisticated instructions:
-  - Mixed cadence + clause sprawl, Asymmetric emphasis, One aside, Hedge twice
-  - Local disfluency, Analogy injection, Topic snap, Friction detail
-- All AI providers now use consistent prompt structure with proper preset integration
-- Removed deprecated buildSystemPrompt method for cleaner codebase
+- Comprehensive PRESET_TEXT mapping with 40+ precise rewrite instructions
+- expandPresets function for combo preset handling ("Lean & Sharp", "Analytic")
+- Unified buildRewritePrompt function shared across all AI providers
+- "Advanced Techniques" category with 8 sophisticated instructions
 
-**Default AI Provider Update**
-- Changed default AI provider from OpenAI to Anthropic Claude Sonnet 4
-- Updated both main interface and chat interface to default to Anthropic
-- Maintains full multi-provider support (OpenAI, Anthropic, DeepSeek, Perplexity)
-
-**Default Style Sample Configuration**
-- Set "Formal and Functional Relationships" as the default style sample
-- Automatically loads in style text box when application starts
-- Pre-selected in the LeftSidebar dropdown for immediate use
+**Defaults**
+- Default AI provider: Anthropic Claude Sonnet 4 (main interface and chat)
+- Default style sample: "Formal and Functional Relationships"
 
 ## User Preferences
 
@@ -98,10 +55,11 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack Query (React Query) for server state management and caching
 - **Routing**: Wouter for lightweight client-side routing
 - **Form Handling**: React Hook Form with Zod validation for type-safe form management
+- **Authentication UI**: Clerk (`@clerk/clerk-react`) with modal sign-in including Google login
 
 ### Backend Architecture
 - **Express.js API**: RESTful API server handling file uploads, text processing, AI provider integrations, and user authentication
-- **Authentication**: Passport.js with local strategy, scrypt password hashing, and session-based authentication
+- **Authentication**: Legacy Passport.js local strategy endpoints (scrypt hashing, session-based); Clerk handles the primary sign-in UI on the frontend
 - **File Processing**: Multer-based file upload system supporting TXT, PDF, DOC/DOCX formats up to 50MB
 - **Service Layer Pattern**: Modular services for file processing, text chunking, GPTZero integration, and AI provider management
 - **Database Storage**: PostgreSQL with Drizzle ORM for persistent user data and generated materials storage
@@ -109,10 +67,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Architecture
 - **Drizzle ORM**: Type-safe database toolkit with active PostgreSQL integration for persistent storage
-- **Schema Design**: Well-defined schemas for users (with authentication), documents, rewrite jobs, and payments with proper relationships
-- **User Data**: Secure storage of user credentials with hashed passwords, credit balance, Stripe customer ID, session data persisted to database
-- **Payment Tracking**: Payments table with unique constraint on Stripe payment intent ID for idempotency
-- **Transactional Operations**: Database transactions ensure atomic payment insert and credit increment (both succeed or both roll back)
+- **Schema Design**: Schemas for users, documents, and rewrite jobs with proper relationships (no payment tables)
 - **Material Storage**: Documents and rewrite jobs linked to user accounts via foreign keys for authenticated users
 - **Text Chunking**: Intelligent text segmentation for large documents (>500 words) with configurable overlap
 - **Job Management**: Async rewrite job processing with status tracking and result storage
@@ -155,11 +110,8 @@ Preferred communication style: Simple, everyday language.
 - **GPTZero API**: AI detection scoring service for input and output analysis
 - **DeepSeek & Perplexity**: Additional AI provider support (configured for future implementation)
 
-### Payment Integration
-- **Stripe API**: Credit package purchases with live payment processing
-- **Payment Intents**: Secure payment flow with metadata for credit amounts
-- **Webhook Integration**: `payment_intent.succeeded` event handling for backup credit fulfillment
-- **Transaction Safety**: Database transactions ensure payment records and credit grants are atomic
+### Authentication
+- **Clerk**: Frontend authentication with Google login via `@clerk/clerk-react`; requires `VITE_CLERK_PUBLISHABLE_KEY` secret
 
 ### Database
 - **PostgreSQL**: Configured via Neon Database serverless connection (ready for production)
