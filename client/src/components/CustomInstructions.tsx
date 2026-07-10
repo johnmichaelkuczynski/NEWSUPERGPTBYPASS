@@ -69,7 +69,7 @@ export default function CustomInstructions({
             Custom Instructions (Optional)
           </label>
           <Textarea
-            className="w-full h-20 resize-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm text-gray-900 placeholder-gray-500 p-3"
+            className="w-full h-48 resize-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm text-gray-900 placeholder-gray-500 p-3"
             placeholder="Add specific instructions for the rewrite: tone, style, complexity, target audience, etc..."
             value={value}
             onChange={(e) => onChange(e.target.value)}
