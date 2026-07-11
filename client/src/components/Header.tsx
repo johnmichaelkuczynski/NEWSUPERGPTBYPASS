@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+
+const ADMIN_EMAIL = "johnmichaelkuczynski@gmail.com";
 
 interface HeaderProps {
   provider: string;
@@ -29,11 +32,19 @@ function AuthControls() {
   }
 
   if (isAuthenticated && user) {
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL;
     return (
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-3">
         <span className="text-sm text-gray-700" data-testid="text-user-name">
           {user.displayName || user.username}
         </span>
+        {isAdmin && (
+          <Link href="/admin" data-testid="link-admin">
+            <Button variant="outline" size="sm">
+              <i className="fas fa-chart-bar mr-2"></i>Administrative
+            </Button>
+          </Link>
+        )}
         <Button
           variant="outline"
           size="sm"
