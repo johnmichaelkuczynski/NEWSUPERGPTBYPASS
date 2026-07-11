@@ -9,8 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 
 interface WritingSample {
   id: string;
-  author: string;
-  title: string | null;
+  label: string;
   content: string;
 }
 
@@ -57,8 +56,7 @@ export default function LeftSidebar({
     if (!q) return samples.slice(0, 10);
     return samples
       .filter((s) =>
-        s.author.toLowerCase().includes(q) ||
-        (s.title ?? "").toLowerCase().includes(q) ||
+        s.label.toLowerCase().includes(q) ||
         s.content.toLowerCase().includes(q)
       )
       .slice(0, 10);
@@ -164,13 +162,13 @@ export default function LeftSidebar({
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs pointer-events-none"></i>
               <Input
                 className="pl-8 pr-7 text-sm h-9"
-                placeholder="Search by author or content..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 leading-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
                   onClick={() => setSearchQuery("")}
                 >
                   ×
@@ -184,8 +182,9 @@ export default function LeftSidebar({
                 <i className="fas fa-folder-open text-gray-300 text-2xl mb-2 block"></i>
                 <p className="text-xs text-gray-400 leading-relaxed">
                   Drop <code>.txt</code> files into the<br />
-                  <code className="text-blue-500">writing_samples/</code> folder<br />
-                  in the file browser to add samples.
+                  <code className="text-blue-500">writing_samples/</code> folder.<br />
+                  Name them anything — e.g. <code>Freud.txt</code>,<br />
+                  <code>Welty.txt</code>, <code>Freud_2.txt</code>
                 </p>
               </div>
             ) : (
@@ -199,16 +198,11 @@ export default function LeftSidebar({
                         selectedId === sample.id ? "bg-blue-50 border-l-2 border-blue-500" : ""
                       }`}
                     >
-                      <div className="text-sm font-semibold text-gray-800 truncate">
-                        {sample.author}
+                      <div className="text-sm font-medium text-gray-800">
+                        {sample.label}
                       </div>
-                      {sample.title && (
-                        <div className="text-xs text-blue-500 truncate mt-0.5">
-                          {sample.title}
-                        </div>
-                      )}
                       <div className="text-xs text-gray-400 mt-0.5 truncate">
-                        {sample.content.slice(0, 60)}…
+                        {sample.content.slice(0, 65)}…
                       </div>
                     </button>
                   ))}
@@ -225,16 +219,11 @@ export default function LeftSidebar({
             {selectedSample && (
               <div className="mt-3 border rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-800 truncate">
-                      {selectedSample.author}
-                    </div>
-                    {selectedSample.title && (
-                      <div className="text-xs text-blue-500 truncate">{selectedSample.title}</div>
-                    )}
-                  </div>
+                  <span className="text-sm font-semibold text-gray-800 truncate">
+                    {selectedSample.label}
+                  </span>
                   <button
-                    className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                    className="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-600 text-lg leading-none"
                     onClick={() => setSelectedId(null)}
                   >
                     ×
