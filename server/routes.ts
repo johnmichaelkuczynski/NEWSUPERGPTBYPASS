@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
+import fs from "fs";
+import path from "path";
 import { storage } from "./storage";
 import { fileProcessorService } from "./services/fileProcessor";
 import { textChunkerService } from "./services/textChunker";
@@ -346,6 +348,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Chat error:', error);
       res.status(500).json({ error: `Chat API Error: ${error?.message || 'Unknown error'}` });
+    }
+  });
+
+  // Writing samples — reads all .txt files from writing_samples/ folder
+  app.get("/api/writing-samples", (_req, res) => {
+    try {
+      const dir = path.join(process.cwd(), "writing_samples");
+      if (!fs.existsSync(dir)) {
+        return res.json([]);
+      }
+      const files = fs.readdirSync(dir).filter((f) => f.endsWith(".txt") && f !== "README.txt");
+      const samples = files.map((file) => {
+        const author = file.replace(/\.txt$/, "").replace(/_/g, " ");
+        const content = fs.readFileSync(path.join(dir, file), "utf-8").trim();
+        return { id: file.replace(/\.txt$/, ""), author, content };
+      }).sort((a, b) => a.author.localeCompare(b.author));
+      res.json(samples);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
