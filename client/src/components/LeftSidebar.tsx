@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 interface WritingSample {
   id: string;
   author: string;
+  title: string | null;
   content: string;
 }
 
@@ -57,6 +58,7 @@ export default function LeftSidebar({
     return samples
       .filter((s) =>
         s.author.toLowerCase().includes(q) ||
+        (s.title ?? "").toLowerCase().includes(q) ||
         s.content.toLowerCase().includes(q)
       )
       .slice(0, 10);
@@ -193,15 +195,20 @@ export default function LeftSidebar({
                     <button
                       key={sample.id}
                       onClick={() => handleSelect(sample)}
-                      className={`w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors group ${
+                      className={`w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors ${
                         selectedId === sample.id ? "bg-blue-50 border-l-2 border-blue-500" : ""
                       }`}
                     >
-                      <div className="text-sm font-medium text-gray-800">
+                      <div className="text-sm font-semibold text-gray-800 truncate">
                         {sample.author}
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">
-                        {sample.content.slice(0, 70)}…
+                      {sample.title && (
+                        <div className="text-xs text-blue-500 truncate mt-0.5">
+                          {sample.title}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-0.5 truncate">
+                        {sample.content.slice(0, 60)}…
                       </div>
                     </button>
                   ))}
@@ -218,9 +225,14 @@ export default function LeftSidebar({
             {selectedSample && (
               <div className="mt-3 border rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
-                  <span className="text-sm font-semibold text-gray-800">
-                    {selectedSample.author}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 truncate">
+                      {selectedSample.author}
+                    </div>
+                    {selectedSample.title && (
+                      <div className="text-xs text-blue-500 truncate">{selectedSample.title}</div>
+                    )}
+                  </div>
                   <button
                     className="text-gray-400 hover:text-gray-600 text-lg leading-none"
                     onClick={() => setSelectedId(null)}

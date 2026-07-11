@@ -360,10 +360,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const files = fs.readdirSync(dir).filter((f) => f.endsWith(".txt") && f !== "README.txt");
       const samples = files.map((file) => {
-        const author = file.replace(/\.txt$/, "").replace(/_/g, " ");
+        const base = file.replace(/\.txt$/, "");
+        const [rawAuthor, rawTitle] = base.split("--", 2);
+        const author = rawAuthor.replace(/_/g, " ");
+        const title = rawTitle ? rawTitle.replace(/_/g, " ") : null;
         const content = fs.readFileSync(path.join(dir, file), "utf-8").trim();
-        return { id: file.replace(/\.txt$/, ""), author, content };
-      }).sort((a, b) => a.author.localeCompare(b.author));
+        return { id: base, author, title, content };
+      }).sort((a, b) => a.author.localeCompare(b.author) || (a.title ?? "").localeCompare(b.title ?? ""));
       res.json(samples);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
