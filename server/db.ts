@@ -5,7 +5,7 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const connectionString = process.env.NEON_DATABASE_URL;
 
 if (!connectionString) {
   throw new Error("NEON_DATABASE_URL must be set in Project Secrets.");

@@ -9,8 +9,13 @@ import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/use-auth";
 
+const IS_PROD = import.meta.env.PROD;
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // In development, skip the gate so the OAuth redirect issue doesn't block work
+  if (!IS_PROD) return <>{children}</>;
 
   if (isLoading) {
     return (
