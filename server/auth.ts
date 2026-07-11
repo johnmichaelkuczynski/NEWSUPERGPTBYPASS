@@ -52,7 +52,7 @@ export function setupAuth(app: Express) {
   // Database-backed session store
   const PgSession = connectPgSimple(session);
   const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+    connectionString: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
   });
 
