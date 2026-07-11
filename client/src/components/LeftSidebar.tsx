@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { instructionPresets } from "@/lib/instructionPresets";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const EXCERPT_CHARS = 12000;
 
@@ -63,10 +63,36 @@ export default function LeftSidebar({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [excerptPos, setExcerptPos] = useState<ExcerptPosition>("beginning");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: samples = [] } = useQuery<WritingSample[]>({
     queryKey: ["/api/writing-samples"],
   });
+
+  const handleUpload = async (file: File) => {
+    if (!file.name.endsWith(".txt")) {
+      setUploadError("Only .txt files");
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/writing-samples/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      queryClient.invalidateQueries({ queryKey: ["/api/writing-samples"] });
+    } catch (err: any) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handlePresetSelect = (presetId: string) => {
     if (!selectedPresets.includes(presetId)) {
@@ -188,11 +214,32 @@ export default function LeftSidebar({
               <i className="fas fa-book text-primary"></i>
               Writing Samples
               {samples.length > 0 && (
-                <span className="ml-auto font-normal text-gray-400 normal-case">
-                  {samples.length} {samples.length === 1 ? "file" : "files"}
+                <span className="font-normal text-gray-400 normal-case">
+                  {samples.length}
                 </span>
               )}
+              <button
+                className="ml-auto flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 font-medium normal-case disabled:opacity-50"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                title="Upload a .txt file"
+              >
+                <i className={`fas ${uploading ? "fa-spinner fa-spin" : "fa-plus"}`}></i>
+                {uploading ? "Uploading…" : "Add"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+              />
             </h3>
+            {uploadError && (
+              <div className="mb-2 text-xs text-red-500 bg-red-50 border border-red-200 rounded px-2 py-1">
+                {uploadError}
+              </div>
+            )}
 
             {samples.length === 0 ? (
               <div className="text-xs text-gray-400 text-center py-4">No samples available.</div>

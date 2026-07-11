@@ -358,6 +358,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload a writing sample (.txt) directly into the database
+  const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+  app.post("/api/writing-samples/upload", memUpload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file provided" });
+      const originalName = req.file.originalname;
+      if (!originalName.endsWith(".txt")) return res.status(400).json({ error: "Only .txt files are supported" });
+      const label = originalName.replace(/\.txt$/i, "").replace(/_/g, " ").trim();
+      const content = req.file.buffer.toString("utf-8").trim();
+      if (!content) return res.status(400).json({ error: "File is empty" });
+      const wordCount = content.split(/\s+/).filter(Boolean).length;
+      const sample = await storage.upsertWritingSampleByLabel({ label, content, wordCount });
+      res.json({ id: sample.id, label: sample.label, wordCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Writing samples — served from database
   app.get("/api/writing-samples", async (_req, res) => {
     try {
