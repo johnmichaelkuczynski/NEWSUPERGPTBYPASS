@@ -157,40 +157,35 @@ export default function LeftSidebar({
               )}
             </h3>
 
-            {/* Search */}
-            <div className="relative mb-2">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs pointer-events-none"></i>
-              <Input
-                className="pl-8 pr-7 text-sm h-9"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
-                  onClick={() => setSearchQuery("")}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-
-            {/* List */}
+            {/* List with optional filter */}
             {samples.length === 0 ? (
-              <div className="border border-dashed rounded-lg p-6 text-center">
-                <i className="fas fa-folder-open text-gray-300 text-2xl mb-2 block"></i>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Drop <code>.txt</code> files into the<br />
-                  <code className="text-blue-500">writing_samples/</code> folder.<br />
-                  Name them anything — e.g. <code>Freud.txt</code>,<br />
-                  <code>Welty.txt</code>, <code>Freud_2.txt</code>
-                </p>
-              </div>
+              <div className="text-xs text-gray-400 text-center py-4">No samples available.</div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
+                {/* Filter input — only shown when there are enough samples to need it */}
+                {samples.length > 5 && (
+                  <div className="relative border-b">
+                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs pointer-events-none"></i>
+                    <input
+                      className="w-full pl-8 pr-7 py-2 text-sm outline-none bg-white placeholder-gray-400"
+                      placeholder="Filter samples..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+                        onClick={() => setSearchQuery("")}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                  {filteredSamples.map((sample) => (
+                  {filteredSamples.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-gray-400 text-center">No matches</div>
+                  ) : filteredSamples.map((sample) => (
                     <button
                       key={sample.id}
                       onClick={() => handleSelect(sample)}
@@ -207,9 +202,9 @@ export default function LeftSidebar({
                     </button>
                   ))}
                 </div>
-                {filteredSamples.length === 10 && (
+                {filteredSamples.length === 10 && searchQuery && (
                   <div className="px-3 py-1.5 bg-gray-50 border-t text-xs text-gray-400 text-center">
-                    Showing top 10 — search to narrow down
+                    Showing top 10 — refine filter to see more
                   </div>
                 )}
               </div>
