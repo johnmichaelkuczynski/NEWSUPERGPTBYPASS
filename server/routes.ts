@@ -358,20 +358,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Writing samples — reads all .txt files from writing_samples/ folder
-  app.get("/api/writing-samples", (_req, res) => {
+  // Writing samples — served from database
+  app.get("/api/writing-samples", async (_req, res) => {
+    try {
+      const samples = await storage.listWritingSamples();
+      res.json(samples.map(s => ({ id: s.id, label: s.label, content: s.content })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: bulk import writing samples from writing_samples/ folder into DB
+  app.post("/api/admin/import-writing-samples", async (_req, res) => {
     try {
       const dir = path.join(process.cwd(), "writing_samples");
       if (!fs.existsSync(dir)) {
-        return res.json([]);
+        return res.json({ imported: 0, message: "No writing_samples folder found" });
       }
       const files = fs.readdirSync(dir).filter((f) => f.endsWith(".txt") && f !== "README.txt");
-      const samples = files.map((file) => {
+      let imported = 0;
+      for (const file of files) {
         const label = file.replace(/\.txt$/, "").replace(/_/g, " ");
         const content = fs.readFileSync(path.join(dir, file), "utf-8").trim();
-        return { id: file.replace(/\.txt$/, ""), label, content };
-      }).sort((a, b) => a.label.localeCompare(b.label));
-      res.json(samples);
+        const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+        await storage.upsertWritingSampleByLabel({ label, content, wordCount });
+        imported++;
+      }
+      res.json({ imported, message: `Imported ${imported} writing samples into database` });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

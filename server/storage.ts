@@ -1,4 +1,4 @@
-import { type Document, type RewriteJob, type InsertDocument, type InsertRewriteJob, type User, type Visit } from "@shared/schema";
+import { type Document, type RewriteJob, type InsertDocument, type InsertRewriteJob, type User, type Visit, type WritingSampleRow, type InsertWritingSample } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -23,11 +23,17 @@ export interface IStorage {
   recordVisit(userId: string, email: string | null): Promise<void>;
   getVisits(limit: number): Promise<Visit[]>;
   getVisitTimestampsSince(since: Date | null): Promise<Date[]>;
+
+  // Writing samples
+  listWritingSamples(): Promise<WritingSampleRow[]>;
+  createWritingSample(data: InsertWritingSample): Promise<WritingSampleRow>;
+  deleteWritingSample(id: string): Promise<void>;
+  upsertWritingSampleByLabel(data: InsertWritingSample): Promise<WritingSampleRow>;
 }
 
 import { db } from "./db";
-import { documents, rewriteJobs, users, visits } from "@shared/schema";
-import { eq, desc, gte } from "drizzle-orm";
+import { documents, rewriteJobs, users, visits, writingSamples } from "@shared/schema";
+import { eq, desc, gte, asc } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // Document operations
@@ -107,6 +113,30 @@ export class DatabaseStorage implements IStorage {
       ? await db.select().from(visits).where(gte(visits.visitedAt, since))
       : await db.select().from(visits);
     return rows.map((v) => v.visitedAt as Date).filter(Boolean);
+  }
+
+  // Writing samples
+  async listWritingSamples(): Promise<WritingSampleRow[]> {
+    return await db.select().from(writingSamples).orderBy(asc(writingSamples.label));
+  }
+
+  async createWritingSample(data: InsertWritingSample): Promise<WritingSampleRow> {
+    const [row] = await db.insert(writingSamples).values(data).returning();
+    return row;
+  }
+
+  async deleteWritingSample(id: string): Promise<void> {
+    await db.delete(writingSamples).where(eq(writingSamples.id, id));
+  }
+
+  async upsertWritingSampleByLabel(data: InsertWritingSample): Promise<WritingSampleRow> {
+    const existing = await db.select().from(writingSamples).where(eq(writingSamples.label, data.label));
+    if (existing.length > 0) {
+      const [row] = await db.update(writingSamples).set({ content: data.content, wordCount: data.wordCount }).where(eq(writingSamples.label, data.label)).returning();
+      return row;
+    }
+    const [row] = await db.insert(writingSamples).values(data).returning();
+    return row;
   }
 }
 

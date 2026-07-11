@@ -28,6 +28,21 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Visit = typeof visits.$inferSelect;
 
+export const writingSamples = pgTable("writing_samples", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  label: text("label").notNull(),
+  content: text("content").notNull(),
+  wordCount: integer("word_count").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({
+  id: true,
+  createdAt: true,
+});
+export type WritingSampleRow = typeof writingSamples.$inferSelect;
+export type InsertWritingSample = z.infer<typeof insertWritingSampleSchema>;
+
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   filename: text("filename").notNull(),

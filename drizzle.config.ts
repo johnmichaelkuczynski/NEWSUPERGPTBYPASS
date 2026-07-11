@@ -1,9 +1,9 @@
 import { defineConfig } from "drizzle-kit";
 
-const url = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL;
 
 if (!url) {
-  throw new Error("NEON_DATABASE_URL must be set");
+  throw new Error("DATABASE_URL must be set in Project Secrets.");
 }
 
 export default defineConfig({
