@@ -3,6 +3,36 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pdfRouter from "./routes/pdf";
 import { setupAuth } from "./auth";
+import fs from "fs";
+import path from "path";
+import { storage } from "./storage";
+
+function watchWritingSamplesFolder() {
+  const dir = path.join(process.cwd(), "writing_samples");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  fs.watch(dir, async (eventType, filename) => {
+    if (!filename || !filename.endsWith(".txt") || filename === "README.txt") return;
+    const filePath = path.join(dir, filename);
+    // small delay to ensure file is fully written
+    setTimeout(async () => {
+      try {
+        if (!fs.existsSync(filePath)) return;
+        const content = fs.readFileSync(filePath, "utf-8").trim();
+        if (!content) return;
+        const label = filename.replace(/\.txt$/i, "").replace(/_/g, " ").trim();
+        const wordCount = content.split(/\s+/).filter(Boolean).length;
+        await storage.upsertWritingSampleByLabel({ label, content, wordCount });
+        fs.unlinkSync(filePath);
+        log(`✅ Auto-imported writing sample: "${label}" (${wordCount} words)`);
+      } catch (err: any) {
+        log(`⚠️ Failed to auto-import ${filename}: ${err.message}`);
+      }
+    }, 500);
+  });
+
+  log(`👁️  Watching writing_samples/ folder for new .txt files`);
+}
 
 const app = express();
 
@@ -41,6 +71,7 @@ app.use((req, res, next) => {
 
 (async () => {
   setupAuth(app);
+  watchWritingSamplesFolder();
 
   // Register PDF route first
   app.use("/api/pdf", pdfRouter);
