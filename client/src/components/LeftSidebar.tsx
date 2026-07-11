@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { instructionPresets } from "@/lib/instructionPresets";
 import { useQuery } from "@tanstack/react-query";
 
-const EXCERPT_CHARS = 3000;
+const EXCERPT_CHARS = 12000;
 
 type ExcerptPosition = "beginning" | "middle" | "end";
 
