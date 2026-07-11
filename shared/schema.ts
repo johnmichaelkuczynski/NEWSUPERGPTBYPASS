@@ -3,6 +3,25 @@ import { pgTable, text, varchar, integer, jsonb, timestamp } from "drizzle-orm/p
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  googleId: text("google_id").unique(),
+  email: text("email"),
+  displayName: text("display_name"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export const visits = pgTable("visits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  email: text("email"),
+  visitedAt: timestamp("visited_at").default(sql`now()`),
+});
+
+export type User = typeof users.$inferSelect;
+export type Visit = typeof visits.$inferSelect;
+
 export const writingSamples = pgTable("writing_samples", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   label: text("label").notNull(),

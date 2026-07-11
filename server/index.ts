@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pdfRouter from "./routes/pdf";
+import { setupAuth } from "./auth";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
@@ -66,6 +67,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  setupAuth(app);
   watchWritingSamplesFolder();
 
   app.use("/api/pdf", pdfRouter);
