@@ -1,32 +1,7 @@
-import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  googleId: text("google_id").unique(),
-  email: text("email"),
-  displayName: text("display_name"),
-  createdAt: timestamp("created_at").default(sql`now()`),
-});
-
-export const visits = pgTable("visits", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id"),
-  email: text("email"),
-  visitedAt: timestamp("visited_at").default(sql`now()`),
-});
-
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Visit = typeof visits.$inferSelect;
 
 export const writingSamples = pgTable("writing_samples", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -36,10 +11,7 @@ export const writingSamples = pgTable("writing_samples", {
   createdAt: timestamp("created_at").default(sql`now()`),
 });
 
-export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({ id: true, createdAt: true });
 export type WritingSampleRow = typeof writingSamples.$inferSelect;
 export type InsertWritingSample = z.infer<typeof insertWritingSampleSchema>;
 
@@ -70,15 +42,8 @@ export const rewriteJobs = pgTable("rewrite_jobs", {
   createdAt: timestamp("created_at").default(sql`now()`),
 });
 
-export const insertDocumentSchema = createInsertSchema(documents).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertRewriteJobSchema = createInsertSchema(rewriteJobs).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
+export const insertRewriteJobSchema = createInsertSchema(rewriteJobs).omit({ id: true, createdAt: true });
 
 export type Document = typeof documents.$inferSelect;
 export type RewriteJob = typeof rewriteJobs.$inferSelect;
