@@ -146,8 +146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mixingMode: rewriteRequest.mixingMode,
         });
 
-        const outputAnalysis = await gptZeroService.analyzeText(rewrittenText);
         const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
+          ? await gptZeroService.analyzeText(cleanedRewrittenText)
+          : { aiScore: null };
 
         await storage.updateRewriteJob(rewriteJob.id, {
           outputText: cleanedRewrittenText,
@@ -207,8 +209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mixingMode: originalJob.mixingMode,
         });
 
-        const outputAnalysis = await gptZeroService.analyzeText(rewrittenText);
         const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
+          ? await gptZeroService.analyzeText(cleanedRewrittenText)
+          : { aiScore: null };
 
         await storage.updateRewriteJob(rewriteJob.id, {
           outputText: cleanedRewrittenText,

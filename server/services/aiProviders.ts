@@ -360,6 +360,9 @@ export class AIProviderService {
     for (const p of ordered) {
       try {
         const result = await this.rewriteWithProvider(p, params);
+        if (!result || result.trim().length === 0) {
+          throw new Error(`Provider "${p}" returned empty response`);
+        }
         if (p !== provider) {
           console.warn(`⚠️ Primary provider "${provider}" failed — used "${p}" as fallback.`);
         }
