@@ -117,7 +117,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Input text and provider are required" });
       }
 
-      const inputAnalysis = await gptZeroService.analyzeText(rewriteRequest.inputText);
+      const inputText = rewriteRequest.inputText;
+      const inputAnalysis = inputText.length >= 1 && inputText.length <= 150000
+        ? await gptZeroService.analyzeText(inputText)
+        : { aiScore: null };
 
       const rewriteJob = await storage.createRewriteJob({
         inputText: rewriteRequest.inputText,

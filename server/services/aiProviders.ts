@@ -335,7 +335,7 @@ export class AIProviderService {
 
 
 
-  async rewrite(provider: string, params: RewriteParams): Promise<string> {
+  private async rewriteWithProvider(provider: string, params: RewriteParams): Promise<string> {
     switch (provider) {
       case 'openai':
         return this.rewriteWithOpenAI(params);
@@ -350,6 +350,26 @@ export class AIProviderService {
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
+  }
+
+  async rewrite(provider: string, params: RewriteParams): Promise<string> {
+    const allProviders = ['anthropic', 'openai', 'deepseek', 'perplexity', 'venice'];
+    const ordered = [provider, ...allProviders.filter(p => p !== provider)];
+
+    let lastError: any;
+    for (const p of ordered) {
+      try {
+        const result = await this.rewriteWithProvider(p, params);
+        if (p !== provider) {
+          console.warn(`⚠️ Primary provider "${provider}" failed — used "${p}" as fallback.`);
+        }
+        return result;
+      } catch (err: any) {
+        console.error(`Provider "${p}" failed:`, err.message);
+        lastError = err;
+      }
+    }
+    throw new Error(`All AI providers failed. Last error: ${lastError?.message}`);
   }
 }
 

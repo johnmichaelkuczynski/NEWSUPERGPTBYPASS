@@ -18,7 +18,7 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [styleText, setStyleText] = useState("");
   const [outputText, setOutputText] = useState("");
-  const [customInstructions, setCustomInstructions] = useState("");
+  const [customInstructions, setCustomInstructions] = useState("Preserve meaning while using style of sample in Box B.");
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [selectedStyleSample, setSelectedStyleSample] = useState<string>("");
   const [showApiKeyManager, setShowApiKeyManager] = useState(false);
