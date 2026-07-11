@@ -1,0 +1,1112 @@
+#!/usr/bin/env python3
+"""Add 150 Bergler positions to the database"""
+
+import json
+import re
+
+POSITIONS_TEXT = """
+1. The pre-Oedipal oral phase (0-18 months) is more fundamental to neurosis than the Oedipal phase (3-5 years).
+2. There is only one "basic neurosis"—repressed masochistic attachment to the fantasied earliest "bad mother."
+3. Psychic masochism is the unconscious pursuit of "pleasure in displeasure."
+4. Psychic masochism constitutes "the life-blood of neurosis" and is in fact the basic neurosis.
+5. Neurotic equals psychic masochist—every neurotic is fundamentally a psychic masochist.
+6. The superego is the "real master of the personality."
+7. The superego operates as "torture for torture's sake."
+8. The punitive part of the superego (Daimonion) uses the ego ideal to torture the ego.
+9. Punishment itself becomes masochized—the neurotic derives unconscious pleasure from being punished.
+10. Infantile megalomania and infantile omnipotence are of prime importance in the reduction of anxiety.
+11. Man's inhumanity to man is equaled only by man's inhumanity to himself.
+12. People are heavily defended against realization of the darkest aspects of human nature—their emotional addiction to unresolved negative emotions.
+13. The infant's first important emotional relationship is with the mother (breast/bottle) during the oral stage.
+14. Later neuroses "reformulating" oral masochistic material represent "rescue stations."
+15. Neurotics cling to and repeat misery, which in itself indicates psychic masochism.
+16. The "mechanism of orality" is paradigmatic for the masochistic character.
+17. The mechanism of orality consists of a three-act triad operating unconsciously.
+18. Act 1: Through provocative behavior, a situation is brought about in which some substitute of the pre-Oedipal mother is "refusing."
+19. Act 2: Not realizing they manufacture disappointment, neurotics become aggressive in "righteous indignation" and seemingly in self-defense.
+20. Act 3: They indulge in endless self-pity, unconsciously enjoying psychic masochism.
+21. Neurotics repress completely the fact of their own initial provocation that began the sequence.
+22. Neurotics repress the masochistic enjoyment of self-pity.
+23. The ego-strengthening illusion of "aggression" is maintained while the decisive masochistic substructure remains hidden.
+24. Psychic masochism unconsciously "sugarcoats" and "neutralizes" pain.
+25. Consciously, pain remains and is felt in symptoms and personality distortions.
+26. Psychic masochists unconsciously want refusal, rejection, humiliation, and defeat.
+27. The genuine "wish to get" of infancy is now a defense in the adult neurotic.
+28. Those who operate by the mechanism of orality are "injustice collectors."
+29. A person who unconsciously runs after disappointment cannot be consciously happy.
+30. Neurotics cast others as the "bad, refusing mother."
+31. Neurotic symptoms and traits have a five-layer structure.
+32. Psychic masochism is disguised from the superego by two defensive alibis.
+33. In the normal person, the fifth layer is antimasochistic.
+34. In neurosis, the final layer "smuggles in" masochism in self-damaging symptoms.
+35. Neurotics cannot be helped unless their psychic masochism is analyzed.
+36. Every clinical entity incorporates a unique "specific additional factor" on top of the basic mechanism.
+37. Neurotics shift the blame outside, mostly to parents—this is the "basic fallacy."
+38. The basic fallacy must be shown to be a fallacy for treatment to succeed.
+39. All neurotic aggression is "pseudoaggression."
+40. Pseudoaggression promotes self-damage rather than genuine assertion.
+41. Neurotic aggression serves masochistic purposes while appearing defensive.
+42. The neurotic believes he is fighting back when in fact he is engineering his own defeat.
+43. The superego requires constant appeasement.
+44. Psychic masochism constitutes the most dangerous countermeasure of the unconscious ego against the superego's tyranny.
+45. Inner guilt drives repetitive self-damaging behavior.
+46. The "inner conscience" (superego) constantly accuses the ego.
+47. The unconscious ego defends against superego reproaches through various mechanisms.
+48. When superego attacks are mild ("raids"), neurotic symptoms may be transitory.
+49. Neurotic symptoms have a "pseudo-moral connotation"—ironization of teachings to prop up each symptom.
+50. The battle of the conscience is the central drama of neurotic life.
+51. Writer's block is a clinical condition rooted in oral masochism.
+52. Writer's block was coined as a term in 1947.
+53. Writers are fortunate in that they are able to treat their neurosis every day by writing.
+54. As soon as the writer is blocked, this is catastrophic because the writer will start to go to pieces.
+55. Many a person cannot bear the thought of being completely controlled by the unconscious.
+56. The productive writer eliminates, intrapsychically, the mother—autarchically giving himself ideas and words (milk).
+57. The successful writer sets a "magic gesture" into motion—dramatizing how he allegedly wanted to be treated.
+58. The unproductive, neurotically inhibited writer exhausts his psychic energy in the creation of his unconscious alibi of pseudo-aggression ("I refuse").
+59. The inhibited writer retains the unconscious masochistic wish to be refused.
+60. When the writer cannot convince his superego of the "harmlessness" of his imagination, he has no ideas at all.
+61. If the writer clears the imagination hurdle but cannot obtain approval of his exhibitionism in "writing it down," he cannot write.
+62. Creative writing involves unconscious autarchic provision of maternal nurturance to oneself.
+63. All gamblers gamble because of psychic masochism.
+64. The gambler has an unconscious wish to lose.
+65. Losing is necessary to establish the cruelty of fate for the gambler.
+66. Gambling involves the re-creation of the infantile conflict with the refusing mother.
+67. The mysterious thrill in gambling is connected to unconscious masochistic enjoyment.
+68. Gamblers experience a feeling of uncanniness connected to omnipotence fantasies.
+69. There is inner identity between games of "chance" and games of "reasoning."
+70. Speculators (big and small) operate on similar psychological dynamics as other gamblers.
+71. There exists a typology of gamblers based on their specific masochistic configurations.
+72. Pathological gambling shows clinical complexity involving multiple neurotic layers.
+73. Superstition and systems in gambling serve defensive functions.
+74. Gambling is objectively a losing proposition that satisfies masochistic needs.
+75. Divorce is only a neurotic solution applied to neurotic persons.
+76. Changing the external factors of one's marriage cannot alter the inner conflict.
+77. Unhappy marriages result from neurotic mate selection based on the mechanism of orality.
+78. Neurotic marriages involve partners unconsciously seeking to repeat infantile conflicts.
+79. Tender love has unconscious connotations that are completely disregarded by purely biological approaches.
+80. Frigidity in women is a manifestation of oral masochistic regression.
+81. Psychic impotence in men is rooted in pre-Oedipal conflicts.
+82. Premature ejaculation is the most frequent form of psychogenic potency disturbance.
+83. Vaginal orgasm exists contrary to Kinsey's denial.
+84. "Counterfeit-sex" describes sexual behaviors that are neurotic substitutes for genuine sexuality.
+85. Neurotic women often choose termagants (difficult partners) to repeat masochistic patterns.
+86. The "allure of the forbidden" operates in neurotic sexual patterns.
+87. Romantic love and sexual love have distinct psychoanalytic meanings.
+88. Monogamy and its difficulties reflect underlying oral conflicts.
+89. The revolt of the middle-aged man is a specific clinical syndrome.
+90. Middle-age rebellion originates in unresolved oral conflicts reactivated at midlife.
+91. The middle-aged rebel unconsciously seeks to recreate infantile disappointments.
+92. The rebel's wife plays a role in the masochistic drama.
+93. Children serve as judges in the middle-age revolt scenario.
+94. Resignation is not the way out of the middle-age crisis.
+95. The "second adolescence" of middle age is a defensive configuration.
+96. Depressed mood in middle age relates to masochistic patterns.
+97. The ménage à trois fantasy often emerges in middle-age revolt.
+98. Injustice collectors are unconscious masochists who nurse resentments.
+99. Injustice collectors unconsciously provoke the very mistreatment they complain about.
+100. The injustice collector maintains an enormous cache of grievances going back years.
+101. Injustice collectors unconsciously enjoy self-pity.
+102. Injustice collectors believe they want normal pleasure but run after disappointment.
+103. The injustice collector's versions of events are often skewed or completely misinterpreted.
+104. Injustice collecting serves to validate the masochistic attachment to the bad mother.
+105. Boredom ("alysosis") is a neurotic disease, not merely a mood state.
+106. Boredom is closely associated in a triad with scopophilia (voyeurism) and psychic masochism.
+107. Boredom represents an unsuccessful defense mechanism against inner conscience reproaches.
+108. The prognosis is unfavorable in untreated boredom, which may result in suicide.
+109. Boredom is progressive and never self-limited.
+110. Erythrophobia (pathological blushing) is a manifestation of oral regression.
+111. Logorrhoea (compulsive talking) serves defensive functions against masochistic guilt.
+112. Kleptomania involves the mechanism of orality.
+113. The impostor syndrome has oral masochistic roots.
+114. Hypocrisy has specific implications in neurosis and criminal psychopathology.
+115. Cynicism is a mechanism deducible from oral masochistic theory.
+116. "Criminosis" describes criminal behavior rooted in masochistic self-damage.
+117. There exist 22 distinct visual neuroses.
+118. Psychogenic aspermia (inability to ejaculate) has oral masochistic origins.
+119. Alcoholism is treatable as an oral regression condition.
+120. Hypochondria serves masochistic defensive purposes.
+121. Fashion involves unconscious motivations related to fear and defense.
+122. Clothes are a masculine invention despite being associated with women.
+123. Fashion contains paradoxes and contradictions of the "improved skin."
+124. There are seven ingredients of haute couture related to unconscious dynamics.
+125. Dresses relate to three types of reputation.
+126. Clothes, children of man's fear, become independent cultural phenomena.
+127. Some women have "sartorial anti-talents" based on unconscious conflicts.
+128. Laughter and the sense of humor have specific psychoanalytic meanings.
+129. Humor involves complex dynamics of aggression and masochism.
+130. The psychology of humor relates to superego dynamics.
+131. Therapists should talk at length to patients to counteract their projection of "bad refusing mother."
+132. More active analyzing is needed to unearth and interpret all repressed masochistic data.
+133. Repetitions must be identified and interpreted systematically.
+134. The transference relationship involves projection of the bad mother onto the analyst.
+135. Working through requires addressing the basic masochistic attachment.
+136. Neurotics who want to change can be cured; those who don't remain "incurable."
+137. There are curable and incurable neurotics based on their willingness to analyze psychic masochism.
+138. "Malignant" psychic masochism differs from ordinary neurotic masochism.
+139. Parents are not guilty of their children's neuroses in the simple causal way commonly believed.
+140. The child's subjective interpretation of maternal behavior creates the "bad mother" imago.
+141. The fantasied bad mother may differ substantially from the actual mother's behavior.
+142. Children's neuroses involve the same oral masochistic dynamics as adult neuroses.
+143. Kinsey's research avoids with 100 percent completeness any concession to the existence of the dynamic unconscious.
+144. The Kinsey scale is based on flawed assumptions.
+145. Kinsey's biological one-sidedness ignores psychodynamic factors.
+146. The "taxonomic approach" fails to recognize the unconscious dimension of human sexuality.
+147. Kinsey's dismissal of premature ejaculation as a disorder is unjustified.
+148. Early puberty is an antedated defense expressed organically, not merely biological.
+149. Derogatory remarks about Freudian psychoanalysis are mainly based on ignorance or resistance, or both.
+150. The oral phase is the most determining factor in the development of multiple psychological conditions, extending Freud's later insights about pre-Oedipal development.
+"""
+
+DOMAINS = {
+    range(1, 16): "foundational_metapsychology",
+    range(16, 31): "mechanism_of_orality",
+    range(31, 37): "neurotic_symptom_structure",
+    range(37, 43): "basic_fallacy_pseudoaggression",
+    range(43, 51): "superego_theory",
+    range(51, 63): "creativity_writers_block",
+    range(63, 75): "gambling_psychology",
+    range(75, 89): "marriage_sexuality",
+    range(89, 98): "middle_age_revolt",
+    range(98, 105): "injustice_collectors",
+    range(105, 121): "specific_neurotic_conditions",
+    range(121, 128): "fashion_culture",
+    range(128, 131): "humor_laughter",
+    range(131, 139): "clinical_technique",
+    range(139, 143): "parents_children",
+    range(143, 149): "critique_of_kinsey",
+    range(149, 151): "general_theoretical"
+}
+
+WORKS = {
+    "foundational_metapsychology": "The Basic Neurosis (1949)",
+    "mechanism_of_orality": "The Basic Neurosis (1949)",
+    "neurotic_symptom_structure": "The Basic Neurosis (1949)",
+    "basic_fallacy_pseudoaggression": "The Basic Neurosis (1949)",
+    "superego_theory": "The Superego (1952)",
+    "creativity_writers_block": "The Writer and Psychoanalysis (1949)",
+    "gambling_psychology": "Psychology of Gambling (1957)",
+    "marriage_sexuality": "Unhappy Marriage and Divorce; Counterfeit-Sex (1958)",
+    "middle_age_revolt": "The Revolt of the Middle-Aged Man (1954)",
+    "injustice_collectors": "The Basic Neurosis (1949)",
+    "specific_neurotic_conditions": "Curable and Incurable Neurotics (1961)",
+    "fashion_culture": "Fashion and the Unconscious (1953)",
+    "humor_laughter": "Laughter and the Sense of Humor (1956)",
+    "clinical_technique": "Curable and Incurable Neurotics (1961)",
+    "parents_children": "Parents Not Guilty (1964)",
+    "critique_of_kinsey": "Counterfeit-Sex (1958)",
+    "general_theoretical": "Various Works"
+}
+
+def get_domain(num):
+    for r, domain in DOMAINS.items():
+        if num in r:
+            return domain
+    return "general"
+
+def parse_positions():
+    lines = POSITIONS_TEXT.strip().split('\n')
+    positions = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r'^(\d+)\.\s+(.+)$', line)
+        if match:
+            num = int(match.group(1))
+            text = match.group(2)
+            domain = get_domain(num)
+            work = WORKS.get(domain, "Various Works")
+            
+            position = {
+                "id": f"BERG-150-{num:04d}",
+                "position_id": f"BERG-150-{num:04d}",
+                "author": "Edmund Bergler",
+                "title": text[:100] + "..." if len(text) > 100 else text,
+                "text_evidence": text,
+                "domain": domain.upper(),
+                "work_id": "WORK-BERGLER",
+                "work_title": work,
+                "source": [domain],
+                "year": None
+            }
+            positions.append(position)
+    
+    return positions
+
+def main():
+    with open('data/BERGLER_DATABASE.json', 'r') as f:
+        db = json.load(f)
+    
+    existing_count = len(db['positions'])
+    print(f"Existing positions: {existing_count}")
+    
+    new_positions = parse_positions()
+    print(f"New positions to add: {len(new_positions)}")
+    
+    existing_ids = {p.get('id') or p.get('position_id') for p in db['positions']}
+    
+    added = 0
+    for pos in new_positions:
+        if pos['id'] not in existing_ids:
+            db['positions'].append(pos)
+            added += 1
+    
+    db['metadata']['total_positions'] = len(db['positions'])
+    db['metadata']['description'] = f"Edmund Bergler's psychoanalytic positions. Total: {len(db['positions'])} positions."
+    db['metadata']['last_updated'] = "2025-12-20"
+    
+    with open('data/BERGLER_DATABASE.json', 'w') as f:
+        json.dump(db, f, indent=2)
+    
+    print(f"Added {added} new positions")
+    print(f"Total positions now: {len(db['positions'])}")
+
+if __name__ == '__main__':
+    main()
+#!/usr/bin/env python3
+"""Add Edmund Bergler psychoanalytic positions to the Freud database."""
+
+import json
+import re
+
+BERGLER_POSITIONS = []
+
+def add_positions(work_title, year, positions_text, subcategory=None):
+    """Parse and add positions from a work."""
+    lines = positions_text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r'^(\d+)\.\s+(.+)$', line)
+        if match:
+            position_num = int(match.group(1))
+            text = match.group(2).strip()
+            position_id = f"BERGLER-{len(BERGLER_POSITIONS)+1:04d}"
+            BERGLER_POSITIONS.append({
+                "id": position_id,
+                "text": text,
+                "work": work_title,
+                "year": year,
+                "subcategory": subcategory or work_title,
+                "position_id": position_id,
+                "domain": "PSYCHOLOGY",
+                "category": "Bergler Analysis",
+                "author": "Edmund Bergler"
+            })
+
+add_positions("The Basic Neurosis", 1949, """
+1. All neuroses ultimately derive from unresolved oral-stage conflicts with the pre-Oedipal mother
+2. "Psychic masochism" — unconscious pleasure in self-created displeasure — is the core mechanism of all neurotic pathology
+3. The infant's experience of the "refusing mother" establishes the template for later neurotic repetitions
+4. A defensive triad operates in all neurotics: masochistic provocation, pseudo-aggression, and self-pity
+5. The neurotic unconsciously engineers situations of rejection and disappointment ("injustice collecting")
+6. Pseudo-aggression is not genuine aggression but a defense masking underlying masochistic wishes
+7. Oedipal conflicts are secondary elaborations of more fundamental oral-stage disturbances
+8. The neurotic superego derives its cruelty from introjection of the denying mother
+9. "Septet of baby fears" — seven unconscious fears originating in oral helplessness persist into adulthood
+10. Therapeutic success requires working through oral regression, not merely resolving Oedipal material
+""")
+
+add_positions("The Writer and Psychoanalysis", 1950, """
+1. Writer's block is a specific manifestation of oral masochism, not mere performance anxiety
+2. The creative writer achieves "psychic autarchy" — a fantasy of self-sufficiency recapitulating oral omnipotence
+3. The Muse represents the giving pre-Oedipal mother; writer's block represents her withdrawal
+4. Literary creativity involves controlled regression to oral-stage modes of experience
+5. Writers unconsciously seek rejection through their work, satisfying masochistic needs
+6. The writer's relationship to language recapitulates the infant's relationship to the maternal voice
+7. Creative block involves unconscious guilt over the act of creation itself (usurping maternal function)
+8. Writers exhibit "the mechanism of orality" as a vocational determinant
+9. The audience unconsciously represents the approving/disapproving mother
+10. Productivity requires successful sublimation of oral-sadistic and oral-masochistic impulses
+""")
+
+add_positions("The Battle of the Conscience", 1948, """
+1. Conscience is primarily derived from the internalized pre-Oedipal mother, not the Oedipal father
+2. Guilt is frequently unconsciously manufactured to satisfy masochistic needs
+3. The "pseudo-moral connotation" disguises masochistic satisfaction as ethical suffering
+4. Conscience can be weaponized: the neurotic provokes situations to feel unjustly accused
+5. An "inner lawyer" mechanism defends the ego against superego accusations with sophisticated rationalizations
+6. Many moral stances are unconscious rationalizations of underlying masochistic needs
+7. Self-punishment often precedes and unconsciously licenses subsequent forbidden behavior
+8. Moral masochism must be distinguished from genuine ethical commitment
+9. The cruelty of conscience reflects deprivations experienced at the oral stage
+10. Superego battles often dramatize unresolved infant-mother conflicts
+""")
+
+add_positions("Divorce Won't Help", 1948, """
+1. Neurotic mate selection is driven by unconscious repetition compulsion, not conscious preferences
+2. Divorce typically leads to selection of a similar partner because the underlying neurosis is unchanged
+3. Marital conflict often serves masochistic purposes for both partners
+4. "Unconscious complementarity" draws neurotics to partners who will disappoint them
+5. The spouse unconsciously represents the pre-Oedipal mother, not primarily the Oedipal parent
+6. Marital grievances frequently function as injustice collecting
+7. Sexual difficulties in marriage are symptoms of oral disturbance, not causes of conflict
+8. The "nagging wife" and "withdrawn husband" represent oral-masochistic and oral-defensive types
+9. Therapeutic work on oral conflicts is prerequisite to marital improvement
+10. Changing external circumstances (divorce) cannot resolve internal oral pathology
+""")
+
+add_positions("Money and Emotional Conflicts", 1951, """
+1. Attitudes toward money are shaped primarily by oral-stage experiences, not anal fixation alone
+2. The miser unconsciously equates money with maternal supplies and hoards against oral deprivation
+3. The spendthrift enacts masochistic self-damage through financial self-destruction
+4. Gambling represents a specific oral-masochistic syndrome, not merely a wish to win
+5. Financial self-sabotage expresses psychic masochism in the economic sphere
+6. Success anxiety often leads to unconscious financial self-damage at moments of prosperity
+7. Money conflicts in marriage typically express oral power struggles
+8. Unconscious guilt over "taking" leads to compulsive giving or inability to earn
+9. The neurotic's financial decisions serve masochistic purposes disguised as rational choice
+10. Economic irrationality becomes comprehensible when understood as oral-masochistic repetition
+""")
+
+add_positions("The Psychology of Gambling", 1957, """
+1. The gambler does not primarily wish to win; unconsciously he wishes to lose
+2. Gambling is a specific neurosis rooted in oral masochism, not a vice or character flaw
+3. The gambler unconsciously experiences losing as punishment sought from the pre-Oedipal mother
+4. The "thrill" of gambling is the pleasure-in-displeasure characteristic of masochism
+5. The gambler's pseudo-aggression (beating the house) masks underlying masochistic submission
+6. Repeated losing confirms the gambler's unconscious conviction of maternal rejection
+7. The gambler exhibits the triad: provocation (betting), pseudo-aggression (attempting to win), self-pity (after losing)
+8. Near-wins intensify the masochistic cycle rather than encouraging rational cessation
+9. Gambling addiction is treatable through analysis of underlying oral conflicts
+10. The gambler's "system" represents the omnipotent fantasy of controlling the refusing mother
+""")
+
+add_positions("Fashion and the Unconscious", 1953, """
+1. Fashion serves oral-exhibitionistic needs, displaying oneself to elicit maternal approval
+2. Fashion changes represent collective shifts in unconscious defenses against oral anxiety
+3. The fashion industry exploits universal oral-narcissistic vulnerabilities
+4. Clothing choices express oral-phase conflicts: the wish to be seen/admired and fear of rejection
+5. Fashion conformity represents defense against the anxiety of maternal disapproval
+6. Fashion rebellion expresses pseudo-aggressive defiance masking oral dependency
+7. The idealized female body in fashion represents the pre-Oedipal mother's body
+8. Fashion "victims" exhibit masochistic submission to arbitrary authority (internalized mother)
+9. Male indifference to fashion represents a different defensive organization of the same oral conflicts
+10. Fashion trends can be analyzed as collective symptoms of oral-stage fixation
+""")
+
+add_positions("Laughter and the Sense of Humor", 1956, """
+1. Genuine humor requires successful sublimation of oral-sadistic and oral-masochistic impulses
+2. The "comic" involves a brief regression to infantile omnipotence followed by ego mastery
+3. Aggressive wit expresses oral-sadistic impulses in socially acceptable form
+4. Self-deprecating humor may represent masochistic satisfaction disguised as playfulness
+5. The inability to laugh often indicates severe oral-masochistic pathology
+6. Humor involves triumphing over the inner image of the denying mother
+7. The "punch line" creates a momentary illusion of omnipotent control
+8. Excessive sarcasm represents pseudo-aggression and failed sublimation
+9. Shared laughter creates transient oral communion between laughers
+10. Humorlessness in neurotics reflects ego rigidity defending against oral regression
+""")
+
+add_positions("One Thousand Homosexuals", 1959, """
+1. Homosexuality is a specific neurosis, not a perversion or developmental variant
+2. Male homosexuality represents flight from the dangerous pre-Oedipal mother to "safer" males
+3. The condition is rooted in oral-masochistic fixation, not Oedipal conflict
+4. The homosexual unconsciously seeks rejection and disappointment in relationships
+5. Promiscuity in homosexuals represents repetitive masochistic injustice-collecting
+6. The homosexual's aggression toward women is pseudo-aggression masking oral dependency
+7. Homosexuality is treatable through analysis of underlying oral-masochistic structure
+8. Partner selection in homosexuals follows the same neurotic patterns as heterosexual mate choice
+9. The "gay identity" represents a rationalization of neurotic adaptation
+10. Successful treatment results in heterosexual object choice
+""", subcategory="Historical - Discredited Views")
+
+add_positions("Curable and Incurable Neurotics", 1961, """
+1. Treatability depends on the depth of oral regression and rigidity of masochistic defenses
+2. "Incurable" neurotics are those whose masochistic satisfactions outweigh their suffering
+3. The patient's unconscious resistance to cure is itself a masochistic phenomenon
+4. Therapeutic pessimism is often countertransference to the patient's masochistic provocations
+5. Length of illness does not determine curability; structure of defenses does
+6. The "negative therapeutic reaction" expresses the patient's masochistic attachment to suffering
+7. Some patients use analysis itself as a masochistic enterprise (endless analysis without change)
+8. Curability requires the patient's ego to recognize masochistic satisfactions as unsatisfactory
+9. The analyst must avoid becoming the "refusing mother" in the transference
+10. Therapeutic success requires working through the entire oral-masochistic constellation, not symptom removal
+""")
+
+add_positions("The Superego", 1952, """
+1. The superego is primarily maternal in origin, formed from the pre-Oedipal mother imago
+2. Classical emphasis on paternal superego reflects a secondary Oedipal overlay
+3. The superego's cruelty corresponds to the infant's experience of maternal deprivation
+4. The "giving" and "refusing" mother are split in the archaic superego
+5. Superego pathology underlies all forms of psychic masochism
+6. The superego attacks the ego with accusations derived from oral-phase "crimes"
+7. Guilt is the superego's weapon for extracting masochistic satisfaction
+8. The superego can be "bribed" through self-punishment, temporarily reducing guilt
+9. Superego modification requires analysis of its oral-maternal origins
+10. The mature conscience differs structurally from the archaic oral superego
+""")
+
+add_positions("Principles of Self-Damage", 1959, """
+1. Self-damage is not accidental but unconsciously motivated by psychic masochism
+2. The "accident-prone" personality expresses oral-masochistic structure
+3. Self-sabotage operates across all life domains: work, love, health, finances
+4. Success is unconsciously experienced as forbidden oral gratification, triggering self-punishment
+5. Self-damage serves to confirm the neurotic's unconscious conviction of being rejected/unworthy
+6. Physical illness can serve masochistic purposes (organ neurosis)
+7. The neurotic's "bad luck" is unconsciously arranged
+8. Self-damage satisfies the cruel superego while allowing the ego to feel innocent
+9. Recognition of self-damage patterns is prerequisite to therapeutic change
+10. Self-damage represents internalized aggression originally directed at the frustrating mother
+""")
+
+add_positions("Unhappy Marriage and Divorce", 1946, """
+1. Marital unhappiness is a neurotic symptom, not a response to external circumstances
+2. The choice of marital partner is unconsciously determined by infantile object relations
+3. The neurotic selects a partner guaranteed to disappoint, satisfying masochistic needs
+4. Complaints about the spouse typically represent projections of internal conflicts
+5. Sexual incompatibility in marriage is symptomatic of deeper oral-phase disturbance
+6. The "unhappy marriage" provides continuous masochistic gratification through suffering
+7. Conscious reasons for mate selection rationalize unconscious neurotic determinants
+8. Both partners in an unhappy marriage are neurotic; one "victim" is a myth
+9. The wish to change the partner expresses the infantile wish to transform the denying mother
+10. Infidelity serves masochistic purposes regardless of the stated justification
+11. Jealousy is rooted in oral possessiveness, not Oedipal rivalry
+12. The frigid wife and impotent husband represent symmetrical oral-masochistic adaptations
+13. Quarreling provides masochistic satisfaction disguised as pseudo-aggressive discharge
+14. The "good provider" complaint masks deeper oral grievances
+15. Children are unconsciously used as weapons in the marital masochistic drama
+16. In-law conflicts express displaced mother-conflicts in both partners
+17. The fantasy of the "right partner" perpetuates neurotic denial of internal causation
+18. Chronic marital dissatisfaction represents the repetition compulsion in action
+19. Therapeutic intervention must address both partners' oral pathology
+20. External marital improvement without internal change produces symptom substitution
+""")
+
+add_positions("Conflicts in Marriage", 1949, """
+1. Marital conflict is the external dramatization of internal psychic masochism
+2. Each partner unconsciously assigns the other the role of the refusing pre-Oedipal mother
+3. Power struggles in marriage recapitulate infant-mother oral battles
+4. Financial conflicts in marriage symbolize oral supply-and-deprivation dynamics
+5. The "domineering wife" represents the internalized controlling mother externalized
+6. The "passive husband" exhibits masochistic submission to the maternal imago
+7. Sexual withholding is a weapon expressing oral-sadistic retaliation
+8. Demands for affection in marriage are insatiable because they represent infantile oral needs
+9. Marital silence and withdrawal constitute passive-aggressive oral refusal
+10. Competing martyrdom between spouses represents dueling masochistic claims
+11. The "mother-in-law problem" is the return of the repressed pre-Oedipal mother
+12. Domestic responsibilities become battlegrounds for oral control
+13. Each partner's grievances serve as "injustice collecting" material
+14. Reconciliation-and-relapse cycles reflect the masochistic need for repeated disappointment
+15. The neurotic spouse is unconsciously unappeasable regardless of the partner's efforts
+16. Threats of divorce function as masochistic provocations rather than genuine intentions
+17. Physical symptoms in marriage (headaches, fatigue) express oral protest
+18. The "companionate marriage" ideal masks oral dependency needs
+19. Therapeutic focus on "communication" fails without addressing oral-masochistic structure
+20. Genuine marital improvement requires both partners to resolve oral fixations
+""")
+
+add_positions("Neurotic Counterfeit-Sex", 1951, """
+1. Sexual perversions are not aberrant sexuality but "counterfeit" substitutes for genuine genitality
+2. All perversions are rooted in oral-masochistic fixation, not Oedipal conflict
+3. The pervert unconsciously seeks humiliation and rejection through sexual activity
+4. Exhibitionism expresses the oral need to be seen by the pre-Oedipal mother
+5. Voyeurism represents the infant's visual attachment to the mother's body
+6. Fetishism involves oral-phase splitting — the fetish represents the "good" maternal part-object
+7. Sadism is pseudo-aggression masking underlying masochistic wishes
+8. Masochism in sex makes conscious what is unconscious in neurosis generally
+9. Transvestism expresses identification with the pre-Oedipal mother, not the Oedipal one
+10. The pervert's compulsivity reflects the repetition compulsion of oral fixation
+11. Pornography consumption serves oral-voyeuristic needs, not genital ones
+12. The pervert's relationships are narcissistic, treating partners as maternal part-objects
+13. Don Juanism is a perversion — compulsive conquest masks fear of women (oral mother)
+14. Nymphomania represents masochistic self-degradation, not excessive desire
+15. Promiscuity in both sexes expresses oral insatiability and repetitive disappointment-seeking
+16. The pervert experiences genuine genital sexuality as dangerous or uninteresting
+17. Sexual perversions are treatable through analysis of underlying oral-masochistic structure
+18. "Sexual freedom" ideologies rationalize neurotic inability to achieve genitality
+19. The pervert's apparent pleasure is mixed with unconscious suffering (masochistic satisfaction)
+20. Perversion and neurosis are structural variants of the same oral-masochistic constellation
+""")
+
+add_positions("The Revolt of the Middle-Aged Man", 1954, """
+1. The "midlife crisis" is a regression to oral-phase conflicts, not a developmental stage
+2. The middle-aged man's restlessness expresses reactivated infantile oral dissatisfaction
+3. Affairs in midlife represent masochistic acting-out, not genuine renewal
+4. The younger woman symbolizes the idealized pre-Oedipal mother before she "refused"
+5. Dissatisfaction with the wife expresses projected self-dissatisfaction rooted in oral conflict
+6. Career restlessness at midlife reflects oral grievances displaced onto work
+7. The "unlived life" fantasy denies the neurotic causation of dissatisfaction
+8. Midlife divorce typically worsens rather than resolves the underlying neurosis
+9. Physical aging reactivates infantile helplessness and oral dependency fears
+10. The middle-aged man's pseudo-aggression (rebelliousness) masks masochistic submission
+11. Alcohol abuse in midlife serves oral-regressive functions
+12. The "trophy wife" represents the fantasy of the inexhaustibly giving mother
+13. Abandoning the family enacts masochistic self-damage rationalized as liberation
+14. Envy of youth expresses oral grievance against time as the "refusing mother"
+15. Midlife grandiosity compensates for underlying oral-masochistic depression
+16. Sexual potency concerns mask deeper fears of oral inadequacy
+17. The middle-aged man's complaints against his wife recapitulate infant grievances against mother
+18. "Starting over" fantasies deny the internal origin of dissatisfaction
+19. Successful midlife adjustment requires resolving reactivated oral conflicts
+20. The "revolt" is pseudo-rebellion serving masochistic purposes while appearing aggressive
+""")
+
+add_positions("Kinsey's Myth of Female Sexuality", 1954, """
+1. Kinsey's statistical method cannot capture the unconscious determinants of sexuality
+2. Sexual behavior frequencies tell nothing about the psychic meaning of sexual acts
+3. Kinsey's work normalizes neurotic sexuality by treating it as mere behavioral variation
+4. The vaginal-clitoral orgasm distinction has psychoanalytic significance Kinsey ignores
+5. Female frigidity is a symptom of oral-masochistic pathology, not anatomical variation
+6. Kinsey's interviewees' self-reports are distorted by unconscious factors he cannot assess
+7. "Sexual outlet" as a concept ignores the distinction between neurotic and healthy sexuality
+8. Kinsey democratizes perversion by refusing qualitative distinctions
+9. Premarital sexual experience statistics reveal nothing about its neurotic or healthy character
+10. Extramarital sexuality data conflate neurotic acting-out with genuine intimacy
+11. Masturbation frequency data ignore the psychic content and function of masturbation fantasies
+12. Kinsey's biological reductionism eliminates the psychological dimension of sexuality
+13. Female sexual "responsiveness" varies according to oral-phase resolution, not merely technique
+14. Homosexual "incidence" figures obscure the neurotic structure underlying homosexuality
+15. The female orgasm has developmental significance Kinsey's behaviorism cannot capture
+16. Sexual satisfaction cannot be measured by orgasm frequency alone
+17. Kinsey's "outlet" concept treats humans as hydraulic systems, ignoring psychic complexity
+18. Cultural factors in sexuality are themselves shaped by universal oral-phase dynamics
+19. The appearance of scientific objectivity masks Kinsey's ideological normalization of pathology
+20. Psychoanalysis provides the qualitative understanding Kinsey's quantitative method lacks
+""", subcategory="Critique of Kinsey")
+
+add_positions("Homosexuality: Disease or Way of Life?", 1956, """
+1. Homosexuality is a disease — a specific neurosis — not a normal variant or lifestyle choice
+2. The homosexual's apparent object-choice (same sex) masks the underlying oral-maternal fixation
+3. Male homosexuality represents flight from the "dangerous" pre-Oedipal mother
+4. The homosexual unconsciously seeks from male partners what he feared from mother
+5. Homosexual promiscuity expresses oral insatiability and repetitive masochistic disappointment
+6. The homosexual's hostility toward women is pseudo-aggression covering oral dependency
+7. "Gay identity" is a rationalization of neurotic adaptation, not authentic selfhood
+8. The homosexual relationship recapitulates the infant-mother dyad, not adult mutuality
+9. Homosexual cruising represents compulsive repetition of masochistic rejection-seeking
+10. The passive-active distinction in homosexuality is superficial; both roles are orally determined
+11. Homosexual jealousy reflects oral possessiveness toward the maternal substitute
+12. The homosexual's creativity, when present, derives from the same oral sources as his neurosis
+13. Seduction theories of homosexual etiology are insufficient; oral-phase fixation is primary
+14. The homosexual unconsciously engineers relationship failures to confirm maternal rejection
+15. Effeminacy in male homosexuals represents identification with the pre-Oedipal mother
+16. Homosexuality is treatable; motivated patients can achieve heterosexual object-choice
+17. The "well-adjusted homosexual" exhibits successful defensive organization, not health
+18. Gay subculture institutionalizes and reinforces neurotic patterns
+19. Homosexual partnerships lack the complementarity possible in resolved heterosexuality
+20. Therapeutic pessimism about homosexuality reflects countertransference, not clinical reality
+""", subcategory="Historical - Discredited Views")
+
+add_positions("Tensions Can Be Reduced to Nuisances", 1960, """
+1. Neurotic tensions are self-created through the mechanism of psychic masochism
+2. The neurotic experiences self-generated suffering as externally imposed
+3. Recognizing one's own role in creating tension is the first step toward its reduction
+4. Tensions serve masochistic purposes; the neurotic unconsciously resists their elimination
+5. "Bad luck" is typically unconsciously arranged tension-production
+6. Anticipatory anxiety creates the very situations the neurotic consciously fears
+7. Interpersonal tensions reflect projected internal oral conflicts
+8. Work tensions often express displaced oral grievances against the maternal employer
+9. The neurotic's complaint is his prize — surrendering grievances feels like loss
+10. Tension reduction requires recognizing the masochistic "payoff" in suffering
+11. The "inner lawyer" rationalizes tension-producing behavior as externally caused
+12. Insight without working-through leaves masochistic patterns intact
+13. Minor tensions ("nuisances") are achievable even without complete character change
+14. The neurotic manufactures crises to maintain optimal masochistic tension levels
+15. Pseudo-aggression in response to tension increases rather than discharges it
+16. Relaxation techniques fail without addressing the unconscious need for tension
+17. The neurotic's time urgency reflects oral impatience and anxiety
+18. Financial tensions typically express symbolic oral supply anxieties
+19. Health anxieties serve masochistic purposes regardless of medical realities
+20. Sustained tension reduction requires modification of the underlying oral-masochistic structure
+""")
+
+add_positions("Parents Not Guilty of Their Children's Neuroses", 1964, """
+1. Parental guilt for children's neuroses is itself often a neurotic (masochistic) phenomenon
+2. The child's constitutional oral endowment shapes neurotic development more than parental behavior
+3. "Good enough" parenting cannot prevent neurosis in constitutionally vulnerable children
+4. The child actively interprets parental behavior through the lens of oral-phase fantasy
+5. Identical parenting produces different outcomes in different children due to constitutional variation
+6. The "refrigerator mother" theory of pathology oversimplifies complex developmental interactions
+7. Parental self-blame serves masochistic purposes in neurotic parents
+8. The child's neurosis is not a simple copy of parental neurosis
+9. Therapeutic focus on parental blame deflects from the patient's own psychic responsibility
+10. The infant's oral rage at inevitable frustration is not caused by parental failure
+11. Even optimal parenting cannot satisfy the infant's fantasied oral omnipotence
+12. Parents become retrospective scapegoats for the patient's masochistic needs
+13. The "trauma" model of neurosis overestimates environmental and underestimates constitutional factors
+14. Siblings in the same family develop different neuroses despite shared parenting
+15. Parental guilt often perpetuates rather than repairs parent-child difficulties
+16. The accusation against parents expresses the patient's oral grievance, not historical truth
+17. Psychoanalytic popularization has wrongly emphasized parental causation
+18. The "blame the parents" ideology serves cultural masochistic purposes
+19. Taking excessive responsibility for children's neuroses models masochism for them
+20. Therapeutic progress requires the patient to relinquish parental blame as masochistic gratification
+""")
+
+add_positions("Selected Papers of Edmund Bergler", 1961, """
+1. "Injustice collecting" is a specific mechanism: the neurotic unconsciously provokes mistreatment to confirm grievance
+2. Writer's block represents the withdrawal of the Muse (internalized giving mother)
+3. The "negative therapeutic reaction" expresses masochistic attachment to illness
+4. The "mechanism of orality" operates across all neurotic symptom formations
+5. Boredom is a defense against dangerous oral wishes, not absence of stimulation
+6. Stage fright expresses oral-exhibitionistic conflict before the audience-mother
+7. The "triad" (masochistic provocation, pseudo-aggression, self-pity) is pathognomonic of oral neurosis
+8. Reading inhibitions parallel writer's block as oral-phase disturbances
+9. Fetishism involves oral-phase part-object relations, not Oedipal castration anxiety
+10. The "breast complex" underlies male psychology more pervasively than recognized
+11. Orality determines vocational choice more than Oedipal identifications
+12. The "septet of baby fears" persists unconsciously into adult life
+13. Psychic masochism must be distinguished from moral masochism and erogenic masochism
+14. The Sunday neurosis reflects the loss of work as defense against oral conflict
+15. Premature ejaculation expresses oral-sadistic retaliation against women
+16. Frigidity is active oral refusal, not passive inability
+17. Pseudo-debater personality: one who argues to lose and feel unjustly defeated
+18. The "as if" personality represents extreme oral-dependent adaptation
+19. Criminality often serves masochistic purposes (unconscious wish for punishment)
+20. Therapeutic technique must address oral resistances before Oedipal material
+""")
+
+add_positions("Writer's Block: Foundational Etiology", 1950, """
+1. Writer's block is a specific neurotic symptom, not a creative or technical problem
+2. The block originates in oral-phase fixation, not Oedipal conflict
+3. Writer's block represents the withdrawal of the internalized giving mother (the Muse)
+4. The blocked writer unconsciously experiences the refusal of the pre-Oedipal mother
+5. Writer's block is a form of psychic masochism — unconscious pleasure in self-created suffering
+6. The block is never about "having nothing to say" but about unconscious prohibition against saying
+7. Writer's block recapitulates the infant's helpless rage at maternal refusal
+8. The symptom expresses oral regression under conditions of stress or success
+9. Constitutional oral vulnerability predisposes certain individuals to creative blocking
+10. Writer's block is the writer's specific form of work inhibition, structurally identical to other neurotic work disturbances
+""", subcategory="Writer's Block - Etiology")
+
+add_positions("Writer's Block: The Muse Concept", 1950, """
+1. The Muse is the internal representation of the pre-Oedipal giving mother
+2. Creative flow depends on the unconscious sense that the Muse is giving
+3. Writer's block occurs when the Muse is experienced as withdrawing or refusing
+4. The writer's relationship to the Muse recapitulates the infant-mother nursing relationship
+5. The Muse's "gifts" (ideas, words, inspiration) symbolize maternal milk and love
+6. The blocked writer feels unconsciously abandoned by the internal mother
+7. Courting the Muse represents attempts to appease the pre-Oedipal mother
+8. The Muse's silence is experienced as punishment for unconscious oral crimes
+9. Writers who deny the Muse concept consciously still operate under it unconsciously
+10. The Muse is not metaphor but psychic reality — an internal object relation
+""", subcategory="Writer's Block - Muse Concept")
+
+add_positions("Writer's Block: The Masochistic Mechanism", 1950, """
+1. The blocked writer unconsciously creates the block to suffer
+2. Writer's block provides masochistic satisfaction disguised as creative frustration
+3. The blocked writer is an "injustice collector" gathering grievances against fate, circumstance, or self
+4. Pseudo-aggression against the block (forcing, pushing) intensifies rather than resolves it
+5. Self-pity about the block constitutes the third element of the masochistic triad
+6. The blocked writer unconsciously prefers suffering to the dangers of productive writing
+7. Writer's block serves as self-punishment for unconscious guilt
+8. The block allows the writer to feel victimized while unconsciously orchestrating the victimization
+9. Complaints about the block are the blocked writer's masochistic prize
+10. The neurotic writer unconsciously needs the block more than he needs to write
+""", subcategory="Writer's Block - Masochism")
+
+add_positions("Writer's Block: Guilt and the Superego", 1950, """
+1. Writer's block expresses unconscious guilt over the act of creation itself
+2. Creating is unconsciously equated with stealing from the mother
+3. The writer unconsciously fears retaliation for usurping the maternal creative function
+4. The superego punishes the writer for oral-sadistic wishes embedded in writing
+5. Writer's block is superego-imposed inhibition masquerading as inability
+6. The cruelty of the block reflects the cruelty of the internalized denying mother
+7. Writing success intensifies guilt, often precipitating subsequent blocks
+8. The blocked writer appeases the superego through creative suffering
+9. Writer's block can function as advance payment for later permitted writing
+10. The superego attacks the writer's ego with accusations of fraudulence and worthlessness
+""", subcategory="Writer's Block - Guilt")
+
+add_positions("Writer's Block: Oral-Sadistic and Oral-Dependent Elements", 1950, """
+1. Writing unconsciously expresses oral-sadistic aggression (attacking with words)
+2. The blocked writer fears his own oral-sadistic impulses expressed through writing
+3. Writer's block defends against the emergence of dangerous oral-aggressive material
+4. The blank page represents the refusing mother's breast/face
+5. The writer's oral dependency on the Muse creates vulnerability to her withdrawal
+6. Writer's block expresses oral spite — refusing to produce for the denying mother
+7. The blocked writer's passivity reflects oral-dependent helplessness
+8. Oral greed underlies the writer's wish to produce — and guilt about that greed
+9. Writer's block can express oral refusal: "I won't give if she won't give"
+10. The voracity of the writer's ambition reflects oral insatiability
+""", subcategory="Writer's Block - Orality")
+
+add_positions("Writer's Block: The Septet of Baby Fears", 1950, """
+1. Fear of being starved (block as experience of creative starvation)
+2. Fear of being devoured (block as defense against engulfment by the material)
+3. Fear of being poisoned (block as fear of producing toxic/harmful writing)
+4. Fear of being choked (block as inability to get words out)
+5. Fear of being drained (block as defense against exhausting oneself)
+6. Fear of being castrated (block as Oedipal overlay on oral foundation)
+7. Fear of being abandoned (block as experience of Muse withdrawal)
+8. These archaic fears persist unconsciously and are reactivated in creative work
+9. The writer's block crystallizes one or more of these fears into symptom form
+10. Treatment requires identifying which fears dominate the individual writer's block
+""", subcategory="Writer's Block - Baby Fears")
+
+add_positions("Writer's Block: Specific Triggers and Precipitants", 1950, """
+1. Success frequently triggers writer's block through guilt activation
+2. Deadlines can precipitate block by reactivating oral-phase time pressure
+3. Critical rejection triggers block by confirming the mother's disapproval
+4. Critical praise can trigger block by intensifying guilt over fraudulence
+5. Life transitions reactivate oral conflicts and precipitate blocks
+6. Beginning a new project activates separation anxiety from the completed work
+7. The middle of a project triggers block when initial Muse-gifts are exhausted
+8. Completion anxiety blocks finishing because ending means Muse-separation
+9. Competition with other writers activates oral-sibling rivalry and blocks
+10. Anniversary reactions can precipitate blocks (repetition of original oral traumas)
+""", subcategory="Writer's Block - Triggers")
+
+add_positions("Writer's Block: Pseudo-Solutions and Their Failure", 1950, """
+1. Waiting for inspiration reinforces passive oral-dependent position
+2. Forcing output produces pseudo-writing without resolving the block
+3. Changing topics does not address the oral-masochistic structure
+4. Rituals and superstitions appease the Muse magically without structural change
+5. Alcohol and drugs provide temporary oral gratification but worsen the underlying conflict
+6. Changing environment (retreats, travel) externalizes an internal problem
+7. Seeking advice replaces writing with oral-dependent information gathering
+8. Outlining and planning can become obsessional defenses against actual writing
+9. Research becomes a rationalized postponement of writing
+10. Collaboration transfers Muse-dependency to the collaborator without resolution
+""", subcategory="Writer's Block - Pseudo-Solutions")
+
+add_positions("Writer's Block: Character Types and Variations", 1950, """
+1. The "total block" writer cannot produce at all — complete Muse withdrawal
+2. The "intermittent block" writer cycles between flow and inhibition — ambivalent Muse
+3. The "slow writer" maintains masochistic suffering through laborious production
+4. The "blocked perfectionist" uses standards as rationalized Muse-appeasement
+5. The "procrastinating writer" maintains the block while appearing to intend production
+6. The "dried up" writer experiences the block as permanent Muse-death
+7. The "occasional writer" accepts reduced output as compromise formation
+8. The "blocked reviser" can produce but not complete — fears Muse-judgment
+9. The "secret writer" produces but cannot show work — fears audience-mother
+10. The "graphophobic" writer experiences physical symptoms when attempting to write
+""", subcategory="Writer's Block - Character Types")
+
+add_positions("Writer's Block: Relationship to Other Symptoms", 1950, """
+1. Writer's block often coexists with other oral-masochistic symptoms
+2. Reading blocks can accompany or alternate with writer's block
+3. Speaking inhibitions share the same oral structure as writer's block
+4. Work inhibition in other fields is structurally identical to writer's block
+5. Sexual difficulties often parallel the writer's creative difficulties
+6. Marital conflicts frequently intensify during blocked periods
+7. Somatic symptoms may substitute for or accompany writer's block
+8. Depression and writer's block share oral-masochistic foundation
+9. Insomnia often accompanies block — both express oral disturbance
+10. The block may alternate with other neurotic symptoms in the same individual
+""", subcategory="Writer's Block - Related Symptoms")
+
+add_positions("Writer's Block: Treatment Implications", 1950, """
+1. Treatment must address oral-masochistic structure, not "creativity techniques"
+2. The writer must recognize his unconscious authorship of the block
+3. Insight into masochistic satisfaction is prerequisite to resolution
+4. The transference will recapitulate the Muse relationship
+5. The analyst must avoid becoming the "giving Muse" or "refusing mother"
+6. Working through oral rage at the mother is essential
+7. The writer's pseudo-aggression against the block must be interpreted
+8. Guilt over oral-sadistic impulses in writing must be analyzed
+9. Resolution involves mourning the fantasy of the inexhaustibly giving Muse
+10. Successful treatment enables writing without dependence on Muse-gifts
+""", subcategory="Writer's Block - Treatment")
+
+add_positions("Self-Destructiveness: Foundational Theory", 1959, """
+1. Self-destructiveness is not accidental but unconsciously motivated
+2. Psychic masochism — unconscious pleasure in self-created displeasure — is the engine of self-damage
+3. Self-destructiveness originates in oral-phase conflicts with the pre-Oedipal mother
+4. The self-destructive person unconsciously repeats the experience of maternal refusal
+5. Self-damage serves to confirm the neurotic's conviction that he is rejected and unworthy
+6. The neurotic creates suffering to satisfy an internal need, not in response to external reality
+7. Self-destructiveness operates automatically, outside conscious awareness or intention
+8. All neuroses are forms of self-destructiveness; specific symptoms are local manifestations
+9. The self-destructive pattern is established in infancy and repeated compulsively thereafter
+10. Self-damage provides masochistic satisfaction while allowing the ego to feel victimized
+""", subcategory="Self-Destructiveness - Foundation")
+
+add_positions("Self-Destructiveness: The Oral-Masochistic Constellation", 1959, """
+1. The infant's rage at the "refusing mother" becomes internalized as self-directed aggression
+2. Self-destructiveness represents aggression toward the mother turned against the self
+3. The internalized "bad mother" attacks the ego from within as the punitive superego
+4. Oral dependency creates vulnerability: the infant cannot retaliate against the needed mother
+5. Self-damage substitutes for forbidden aggression against the maternal object
+6. The self-destructive person remains fixated on the oral-phase power struggle
+7. Oral greed underlies self-destructive patterns: the wish for total maternal giving
+8. Oral spite motivates self-damage: "I'll hurt myself to spite her"
+9. Oral helplessness is recreated in adult self-destructive situations
+10. The self-destructive person unconsciously seeks the position of the refused infant
+""", subcategory="Self-Destructiveness - Oral Constellation")
+
+add_positions("Self-Destructiveness: The Mechanism of Injustice Collecting", 1959, """
+1. "Injustice collecting" is the systematic unconscious accumulation of grievances
+2. The injustice collector unconsciously engineers situations of mistreatment
+3. The collection of injustices provides ongoing masochistic satisfaction
+4. External injustices confirm the internal conviction of being wronged by the mother
+5. The injustice collector provokes others to mistreat him, then feels righteously aggrieved
+6. The collection is never complete — new injustices are constantly required
+7. The injustice collector experiences his provocations as innocent and others' responses as unprovoked
+8. Injustice collecting operates across all life domains: work, love, friendship, health
+9. The collection serves as "proof" justifying the neurotic's grievance against life
+10. Surrendering the collection feels like losing one's most prized possession
+""", subcategory="Self-Destructiveness - Injustice Collecting")
+
+add_positions("Self-Destructiveness: The Masochistic Triad", 1959, """
+1. Self-destructiveness operates through a characteristic triad of defenses
+2. First element: masochistic provocation — unconsciously creating situations of mistreatment
+3. Second element: pseudo-aggression — apparent fight-back that is not genuine aggression
+4. Third element: self-pity — wallowing in the suffering one has created
+5. The triad repeats endlessly, each cycle providing fresh masochistic satisfaction
+6. Pseudo-aggression is defensive, not authentic: it invites defeat and retaliation
+7. The self-destructive person mistakes pseudo-aggression for genuine self-assertion
+8. Self-pity completes the cycle by extracting maximum suffering from the situation
+9. Recognition of the triad is essential for interrupting self-destructive patterns
+10. The triad operates automatically and requires analytic intervention to disrupt
+""", subcategory="Self-Destructiveness - Masochistic Triad")
+
+add_positions("Self-Destructiveness: The Role of the Superego", 1959, """
+1. The superego is the internal agency enforcing self-destructive patterns
+2. The superego derives its cruelty from the internalized denying mother
+3. Self-punishment satisfies the superego's demand for suffering
+4. The superego attacks the ego with accusations derived from oral-phase "crimes"
+5. Guilt is manufactured by the superego to justify self-imposed suffering
+6. The superego can be temporarily "bribed" through self-damage, reducing guilt
+7. Self-destructive acts often function as advance payment licensing later pleasure
+8. The superego's demands are insatiable — more self-damage is always required
+9. The "inner lawyer" defends the ego against superego accusations through rationalization
+10. Superego modification is essential for reducing self-destructive patterns
+""", subcategory="Self-Destructiveness - Superego")
+
+add_positions("Self-Destructiveness: In Relationships", 1959, """
+1. Neurotic mate selection ensures relational self-damage
+2. The self-destructive person chooses partners guaranteed to disappoint
+3. "Unconscious complementarity" matches self-destructive partners together
+4. Marital unhappiness provides continuous masochistic gratification
+5. The self-destructive person engineers rejection by the partner
+6. Affairs serve self-destructive purposes regardless of conscious motivation
+7. Jealousy is cultivated and provoked to maximize relational suffering
+8. The self-destructive person is unconsciously unappeasable in relationships
+9. Relational self-destruction recapitulates the infant-mother disappointment
+10. Divorce typically leads to selection of another self-destructive partnership
+""", subcategory="Self-Destructiveness - Relationships")
+
+add_positions("Self-Destructiveness: In Work and Career", 1959, """
+1. Career self-sabotage expresses psychic masochism in the vocational sphere
+2. The self-destructive worker unconsciously engineers failure and disappointment
+3. Success anxiety triggers self-destructive responses at moments of achievement
+4. Procrastination serves self-destructive purposes by creating crisis and failure
+5. Conflicts with authority recapitulate conflicts with the maternal imago
+6. The self-destructive worker provokes superiors to reject or punish him
+7. Quitting jobs impulsively serves masochistic purposes rationalized as autonomy
+8. Work inhibition expresses oral refusal: withholding production from the demanding mother
+9. The self-destructive pattern may manifest only in career while other areas appear intact
+10. Chronic underachievement reflects stabilized self-destructive compromise formation
+""", subcategory="Self-Destructiveness - Career")
+
+add_positions("Self-Destructiveness: Financial", 1959, """
+1. Financial self-damage expresses psychic masochism in the economic sphere
+2. Gambling is a specific self-destructive syndrome: the gambler unconsciously wishes to lose
+3. Spending beyond means serves masochistic purposes of self-created deprivation
+4. Financial success triggers guilt and subsequent self-destructive financial behavior
+5. "Bad investments" are often unconsciously selected for their likelihood of failure
+6. The self-destructive person creates financial crises to maintain masochistic tension
+7. Inability to earn despite capacity reflects oral-masochistic work refusal
+8. Money conflicts in relationships serve self-destructive purposes for both partners
+9. Bankruptcy can provide masochistic satisfaction through public humiliation and loss
+10. Financial recovery without character change leads to repetition of self-destructive patterns
+""", subcategory="Self-Destructiveness - Financial")
+
+add_positions("Self-Destructiveness: Physical", 1959, """
+1. Accident-proneness reflects unconsciously motivated self-damage
+2. "Bad luck" in physical matters is typically unconsciously arranged
+3. Certain illnesses serve masochistic purposes ("organ neurosis")
+4. Self-neglect (diet, sleep, medical care) expresses chronic self-destructiveness
+5. Substance abuse provides oral gratification while serving self-destructive purposes
+6. The self-destructive person unconsciously creates conditions favoring illness or accident
+7. Hypochondria provides masochistic suffering through anticipated physical disaster
+8. Excessive risk-taking expresses self-destructive wishes rationalized as courage
+9. Psychosomatic symptoms express self-directed aggression through the body
+10. Recovery from illness may be unconsciously resisted to prolong masochistic suffering
+""", subcategory="Self-Destructiveness - Physical")
+
+add_positions("Self-Destructiveness: Recognition and Resistance", 1959, """
+1. Self-destructive patterns are ego-syntonic — the person does not recognize them as self-created
+2. The self-destructive person experiences his suffering as externally imposed
+3. Insight into self-destructive patterns is resisted because it threatens masochistic satisfaction
+4. The "inner lawyer" provides convincing rationalizations for self-destructive choices
+5. Confrontation with self-destructive patterns typically produces defensive pseudo-aggression
+6. The self-destructive person defends his right to his grievances against insight
+7. Genuine recognition requires accepting responsibility for unconsciously created suffering
+8. The masochistic "payoff" must be identified and relinquished for change to occur
+9. Self-destructive patterns may shift domains rather than resolve (symptom substitution)
+10. Structural change in the oral-masochistic constellation is required for genuine resolution
+""", subcategory="Self-Destructiveness - Recognition")
+
+add_positions("Self-Destructiveness: Therapeutic Implications", 1959, """
+1. Treatment must address the oral-masochistic structure, not specific self-destructive behaviors
+2. The patient will attempt to establish a self-destructive transference relationship
+3. The analyst must avoid becoming either the "refusing mother" or the masochistic victim
+4. Interpretation of the masochistic triad is central to treatment
+5. The patient's pseudo-aggression toward the analyst must be identified and interpreted
+6. Working through oral rage at the mother enables reduction of self-directed aggression
+7. The patient must recognize his unconscious authorship of his suffering
+8. Surrendering injustice collections feels like object loss and requires mourning
+9. Superego modification reduces the internal demand for self-punishment
+10. Genuine change involves tolerating satisfaction without guilt-induced self-sabotage
+""", subcategory="Self-Destructiveness - Treatment")
+
+add_positions("Gambling, Marriage, and Career: Structural Identity", 1957, """
+1. Gambling, marriage, and career are three theaters staging the same oral-masochistic drama
+2. The unconscious seeks repetition of maternal refusal regardless of the life domain
+3. Object choice in all three domains is determined by the repetition compulsion
+4. The gambler, the unhappy spouse, and the career self-saboteur share identical psychic structure
+5. Failure in one domain predicts vulnerability in the others — the structure is unitary
+6. Surface differences between gambling, marital, and career problems mask structural identity
+7. Treatment of one domain without addressing structure produces symptom displacement to another
+8. Success in any domain triggers the same guilt and self-sabotage mechanisms
+9. The masochistic triad (provocation, pseudo-aggression, self-pity) operates identically across all three
+10. Injustice collecting occurs in gambling ("rigged game"), marriage ("ungiving spouse"), and career ("unfair boss")
+""", subcategory="Unified Phenomena - Structure")
+
+add_positions("Gambling, Marriage, and Career: The Oral Mother", 1957, """
+1. The casino/cards/dice unconsciously represent the refusing or giving pre-Oedipal mother
+2. The spouse unconsciously represents the pre-Oedipal mother, not primarily the Oedipal parent
+3. The employer/career unconsciously represents the maternal figure who gives or withholds
+4. "Lady Luck" is the Muse in gambler's costume — the fantasy of the giving mother
+5. The "good provider" demand in marriage expresses oral supply expectations from the mother
+6. Career ambition expresses oral hunger for maternal approval and narcissistic supplies
+7. Gambling "streaks" recapitulate the infant's experience of maternal availability and withdrawal
+8. Marital cycles of closeness and distance replay the oral-phase drama of union and refusal
+9. Career ups and downs are unconsciously experienced as maternal giving and withholding
+10. In all three domains, the neurotic seeks what he unconsciously arranges not to receive
+""", subcategory="Unified Phenomena - Oral Mother")
+
+add_positions("Gambling, Marriage, and Career: The Gambler's Structure", 1957, """
+1. The gambler does not primarily wish to win — unconsciously he wishes to lose
+2. Gambling is a specific neurosis, not a vice, weakness, or rational miscalculation
+3. The gambler seeks punishment from Lady Luck (the refusing mother)
+4. The "thrill" of gambling is masochistic excitement — pleasure-in-displeasure
+5. Winning produces guilt and triggers unconscious need to lose it back
+6. The gambler's "system" represents the omnipotent fantasy of controlling the refusing mother
+7. Near-wins intensify the masochistic cycle rather than encouraging cessation
+8. The gambler's pseudo-aggression ("beating the house") masks submission to inevitable loss
+9. Chasing losses expresses the oral-masochistic need for continued punishment
+10. The gambler returns to gambling as the infant returns to the frustrating breast
+""", subcategory="Unified Phenomena - Gambler")
+
+add_positions("Gambling, Marriage, and Career: The Unhappy Spouse's Structure", 1957, """
+1. Neurotic mate selection ensures marital disappointment before the marriage begins
+2. The unhappy spouse unconsciously selected a partner guaranteed to reenact maternal refusal
+3. Marital complaints are injustice collections confirming the internal sense of being wronged
+4. The "nag" and the "withdrawer" are complementary oral-masochistic types
+5. Quarreling provides masochistic satisfaction disguised as pseudo-aggressive discharge
+6. Sexual withholding in marriage expresses oral spite and refusal
+7. Demands for affection are insatiable because they represent infantile oral needs
+8. The unhappy spouse is unconsciously unappeasable regardless of the partner's efforts
+9. Marital grievances function as the spouse's most prized possessions
+10. Divorce changes nothing because the selecting neurosis remains intact
+""", subcategory="Unified Phenomena - Unhappy Spouse")
+
+add_positions("Gambling, Marriage, and Career: The Career Self-Saboteur's Structure", 1957, """
+1. Career self-sabotage expresses psychic masochism in the vocational sphere
+2. The self-saboteur unconsciously engineers professional failure and disappointment
+3. Conflicts with bosses recapitulate conflicts with the pre-Oedipal mother
+4. The workplace becomes a stage for injustice collecting against authority
+5. Quitting jobs impulsively serves masochistic purposes rationalized as dignity or autonomy
+6. The career self-saboteur provokes superiors to reject, overlook, or punish him
+7. Promotions and success trigger guilt and subsequent self-destructive career behavior
+8. Chronic underachievement represents stabilized masochistic compromise formation
+9. Work inhibition expresses oral refusal — withholding production from the demanding mother-employer
+10. The self-saboteur's grievances against employers mirror the gambler's grievances against luck
+""", subcategory="Unified Phenomena - Career Self-Saboteur")
+
+add_positions("Gambling, Marriage, and Career: Cross-Domain Dynamics", 1957, """
+1. The compulsive gambler typically also has marital and career difficulties — same structure
+2. Marital unhappiness often triggers or intensifies gambling as displacement
+3. Career frustration feeds marital conflict — the spouse becomes the target of displaced grievance
+4. Financial ruin from gambling destroys marriages — the gambler unconsciously intends this
+5. Career success can destabilize marriage by activating guilt and self-sabotage
+6. The gambler hides gambling from spouse, recreating secretive oral-phase dynamics
+7. Marital infidelity parallels gambling — both seek excitement-through-transgression and punishment
+8. Career affairs often co-occur with gambling and marital infidelity — unified acting-out
+9. The workaholic avoids marriage and resembles the gambler in compulsive engagement with uncertain rewards
+10. Retirement crises parallel gambling crises — loss of the workplace-mother
+""", subcategory="Unified Phenomena - Cross-Domain")
+
+add_positions("Gambling, Marriage, and Career: The Masochistic Triad in Each Domain", 1957, """
+1. Gambling: provocation (betting), pseudo-aggression (playing to win), self-pity (after losing)
+2. Marriage: provocation (nagging/withdrawing), pseudo-aggression (fighting), self-pity (victimhood)
+3. Career: provocation (underperforming/antagonizing), pseudo-aggression (quitting/confronting), self-pity (grievance)
+4. In all three, the pseudo-aggressive phase creates the illusion of fighting back
+5. In all three, self-pity extracts maximum suffering from the self-created situation
+6. In all three, the cycle repeats compulsively without insight
+7. The triad is identical across domains — only surface content differs
+8. Recognition of the triad in one domain facilitates recognition in others
+9. Interrupting the triad requires insight into its masochistic function
+10. The neurotic defends the triad as justified response to external circumstances
+""", subcategory="Unified Phenomena - Triad")
+
+add_positions("Gambling, Marriage, and Career: Unconscious Intentionality", 1957, """
+1. The gambler unconsciously selects games he will lose, believing he plays to win
+2. The spouse unconsciously selects a partner who will disappoint, believing he seeks happiness
+3. The career self-saboteur unconsciously creates failure, believing he strives for success
+4. Conscious intentions are contradicted by unconscious arrangements in all three domains
+5. "Bad luck" in gambling, marriage, and career is unconsciously manufactured
+6. The neurotic's account of his gambling, marital, or career difficulties is systematically distorted
+7. External explanations (rigged games, bad spouse, unfair boss) defend against recognition of self-authorship
+8. The "inner lawyer" produces convincing rationalizations in all three domains
+9. Insight requires accepting responsibility for unconsciously created outcomes
+10. Resistance to insight is strongest precisely where self-authorship is clearest
+""", subcategory="Unified Phenomena - Intentionality")
+
+add_positions("Gambling, Marriage, and Career: Guilt, Success, and Self-Sabotage", 1957, """
+1. Gambling winnings trigger guilt, requiring the gambler to lose them back
+2. Marital happiness triggers guilt, requiring the spouse to manufacture conflict
+3. Career success triggers guilt, requiring the worker to sabotage his achievement
+4. Success in any domain is unconsciously experienced as forbidden oral gratification
+5. The successful person feels he has stolen from the mother and awaits punishment
+6. Self-sabotage following success is self-administered punishment forestalling external punishment
+7. The neurotic cannot tolerate sustained success in gambling, marriage, or career
+8. Cycles of success and failure represent guilt-punishment-permission sequences
+9. The neurotic unconsciously calibrates his suffering to appease the superego
+10. Genuine success requires tolerating satisfaction without guilt-induced self-sabotage
+""", subcategory="Unified Phenomena - Guilt and Success")
+
+add_positions("Gambling, Marriage, and Career: Treatment Implications", 1957, """
+1. Treatment must address the unitary oral-masochistic structure, not separate "problems"
+2. Treating gambling without addressing marital and career manifestations produces displacement
+3. Marital therapy without structural analysis leads to divorce and repetition with a new partner
+4. Career coaching without analytic understanding cannot prevent self-sabotage
+5. The patient will establish the same masochistic dynamic with the analyst
+6. Insight into the triad in one domain facilitates insight in others
+7. The patient must recognize his unconscious authorship across all three domains
+8. Surrendering grievances against luck, spouse, and employer feels like object loss
+9. Working through oral rage at the mother reduces the need for masochistic repetition
+10. Structural change enables genuine success in gambling abstinence, marriage, and career
+""", subcategory="Unified Phenomena - Treatment")
+
+add_positions("Gambling, Marriage, and Career: The Unified Phenomenology", 1957, """
+1. The gambler at the table, the spouse in the quarrel, and the worker before the boss feel identical internal tension
+2. The moment before the bet, the accusation, or the self-sabotaging act carries the same affective charge
+3. The relief after losing, after the fight, after being fired is the same masochistic satisfaction
+4. Sleeplessness accompanies gambling crises, marital crises, and career crises — same oral disturbance
+5. Alcohol facilitates gambling, marital fighting, and career self-destruction — oral regression enabling acting-out
+6. The gambler's spouse, the unhappy spouse's employer, and the career self-saboteur's partner are interchangeable targets
+7. Suicidal ideation can emerge in gambling ruin, marital collapse, or career destruction — same underlying depression
+8. The gambler who stops gambling, the divorcing spouse, and the fired worker feel identical emptiness without their masochistic theater
+9. Recovery in one domain without structural change creates intensification in another
+10. Genuine resolution transforms the person's relationship to chance, intimacy, and achievement simultaneously
+""", subcategory="Unified Phenomena - Phenomenology")
+
+def main():
+    print(f"Parsed {len(BERGLER_POSITIONS)} Bergler positions")
+    
+    with open('data/FREUD_DATABASE_UNIFIED.json', 'r') as f:
+        freud_db = json.load(f)
+    
+    original_count = len(freud_db['positions'])
+    print(f"Original Freud database: {original_count} positions")
+    
+    freud_db['positions'].extend(BERGLER_POSITIONS)
+    
+    new_count = len(freud_db['positions'])
+    print(f"Updated Freud database: {new_count} positions")
+    print(f"Added: {new_count - original_count} Bergler positions")
+    
+    with open('data/FREUD_DATABASE_UNIFIED.json', 'w') as f:
+        json.dump(freud_db, f, indent=2)
+    
+    print("Database updated successfully!")
+
+if __name__ == '__main__':
+    main()
