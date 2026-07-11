@@ -1,11 +1,14 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { instructionPresets } from "@/lib/instructionPresets";
 import { useQuery } from "@tanstack/react-query";
+
+const EXCERPT_CHARS = 3000;
+
+type ExcerptPosition = "beginning" | "middle" | "end";
 
 interface WritingSample {
   id: string;
@@ -21,6 +24,35 @@ interface LeftSidebarProps {
   onContentSampleSelect: (content: string) => void;
 }
 
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function getExcerpt(content: string, position: ExcerptPosition): string {
+  if (content.length <= EXCERPT_CHARS) return content;
+
+  let startChar: number;
+  if (position === "beginning") {
+    startChar = 0;
+  } else if (position === "end") {
+    startChar = Math.max(0, content.length - EXCERPT_CHARS);
+  } else {
+    startChar = Math.max(0, Math.floor((content.length - EXCERPT_CHARS) / 2));
+  }
+
+  // Snap to word boundary
+  if (startChar > 0) {
+    const nextSpace = content.indexOf(" ", startChar);
+    if (nextSpace !== -1) startChar = nextSpace + 1;
+  }
+
+  let endChar = startChar + EXCERPT_CHARS;
+  const lastSpace = content.lastIndexOf(" ", endChar);
+  if (lastSpace > startChar) endChar = lastSpace;
+
+  return content.slice(startChar, endChar).trim();
+}
+
 export default function LeftSidebar({
   selectedPresets,
   onPresetsChange,
@@ -30,6 +62,7 @@ export default function LeftSidebar({
 }: LeftSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [excerptPos, setExcerptPos] = useState<ExcerptPosition>("beginning");
 
   const { data: samples = [] } = useQuery<WritingSample[]>({
     queryKey: ["/api/writing-samples"],
@@ -53,21 +86,25 @@ export default function LeftSidebar({
 
   const filteredSamples = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return samples.slice(0, 10);
-    return samples
-      .filter((s) =>
+    if (!q) return samples;
+    return samples.filter(
+      (s) =>
         s.label.toLowerCase().includes(q) ||
         s.content.toLowerCase().includes(q)
-      )
-      .slice(0, 10);
+    );
   }, [searchQuery, samples]);
 
   const selectedSample = samples.find((s) => s.id === selectedId);
 
   const handleSelect = (sample: WritingSample) => {
     setSelectedId(sample.id);
-    onStyleSampleSelect(sample.content);
+    setExcerptPos("beginning");
   };
+
+  const isLong = selectedSample ? selectedSample.content.length > EXCERPT_CHARS : false;
+  const excerpt = selectedSample ? getExcerpt(selectedSample.content, excerptPos) : "";
+  const totalWords = selectedSample ? wordCount(selectedSample.content) : 0;
+  const excerptWords = excerpt ? wordCount(excerpt) : 0;
 
   return (
     <aside className="h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
@@ -152,23 +189,21 @@ export default function LeftSidebar({
               Writing Samples
               {samples.length > 0 && (
                 <span className="ml-auto font-normal text-gray-400 normal-case">
-                  {samples.length} total
+                  {samples.length} {samples.length === 1 ? "file" : "files"}
                 </span>
               )}
             </h3>
 
-            {/* List with optional filter */}
             {samples.length === 0 ? (
               <div className="text-xs text-gray-400 text-center py-4">No samples available.</div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
-                {/* Filter input — only shown when there are enough samples to need it */}
                 {samples.length > 5 && (
                   <div className="relative border-b">
                     <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs pointer-events-none"></i>
                     <input
                       className="w-full pl-8 pr-7 py-2 text-sm outline-none bg-white placeholder-gray-400"
-                      placeholder="Filter samples..."
+                      placeholder="Filter..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -182,7 +217,7 @@ export default function LeftSidebar({
                     )}
                   </div>
                 )}
-                <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
                   {filteredSamples.length === 0 ? (
                     <div className="px-3 py-4 text-xs text-gray-400 text-center">No matches</div>
                   ) : filteredSamples.map((sample) => (
@@ -196,27 +231,29 @@ export default function LeftSidebar({
                       <div className="text-sm font-medium text-gray-800">
                         {sample.label}
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5 truncate">
-                        {sample.content.slice(0, 65)}…
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        {wordCount(sample.content).toLocaleString()} words
                       </div>
                     </button>
                   ))}
                 </div>
-                {filteredSamples.length === 10 && searchQuery && (
-                  <div className="px-3 py-1.5 bg-gray-50 border-t text-xs text-gray-400 text-center">
-                    Showing top 10 — refine filter to see more
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Full preview */}
+            {/* Preview + excerpt panel */}
             {selectedSample && (
               <div className="mt-3 border rounded-lg overflow-hidden">
+                {/* Header */}
                 <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
-                  <span className="text-sm font-semibold text-gray-800 truncate">
-                    {selectedSample.label}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 truncate">
+                      {selectedSample.label}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {totalWords.toLocaleString()} words total
+                      {isLong && ` · using ~${excerptWords} word excerpt`}
+                    </div>
+                  </div>
                   <button
                     className="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-600 text-lg leading-none"
                     onClick={() => setSelectedId(null)}
@@ -224,17 +261,45 @@ export default function LeftSidebar({
                     ×
                   </button>
                 </div>
-                <div className="px-3 py-3 max-h-56 overflow-y-auto">
+
+                {/* Section picker — only shown for long files */}
+                {isLong && (
+                  <div className="flex border-b">
+                    {(["beginning", "middle", "end"] as ExcerptPosition[]).map((pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setExcerptPos(pos)}
+                        className={`flex-1 py-1.5 text-xs font-medium capitalize transition-colors ${
+                          excerptPos === pos
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-500 hover:bg-gray-50"
+                        } ${pos === "middle" ? "border-x" : ""}`}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Excerpt preview */}
+                <div className="px-3 py-3 max-h-48 overflow-y-auto bg-white">
                   <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {selectedSample.content}
+                    {excerpt}
                   </p>
+                  {isLong && (
+                    <p className="text-xs text-gray-300 mt-2 italic">
+                      — excerpt from {excerptPos} of file —
+                    </p>
+                  )}
                 </div>
+
+                {/* Action buttons */}
                 <div className="flex gap-2 px-3 py-2 bg-gray-50 border-t">
                   <Button
                     size="sm"
                     variant="outline"
                     className="flex-1 text-xs h-8"
-                    onClick={() => onStyleSampleSelect(selectedSample.content)}
+                    onClick={() => onStyleSampleSelect(excerpt)}
                   >
                     → Style Box (B)
                   </Button>
@@ -243,6 +308,7 @@ export default function LeftSidebar({
                     variant="outline"
                     className="flex-1 text-xs h-8"
                     onClick={() => onContentSampleSelect(selectedSample.content)}
+                    title="Sends full text to Content box"
                   >
                     → Content (C)
                   </Button>
