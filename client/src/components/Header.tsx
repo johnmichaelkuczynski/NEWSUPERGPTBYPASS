@@ -80,14 +80,7 @@ export default function Header({ provider, onProviderChange, onShowApiKeys }: He
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onShowApiKeys}
-              data-testid="button-api-keys"
-            >
-              <i className="fas fa-key mr-2"></i>API Keys
-            </Button>
+
             <a href="mailto:zhi@zhisystems.org" data-testid="link-contact">
               <Button variant="outline" size="sm">
                 <i className="fas fa-envelope mr-2"></i>Contact Us
