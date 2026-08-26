@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import zhiLogo from "@assets/zhi_logoc_1787767286486.png";
 
 interface HeaderProps {
   provider: string;
@@ -54,6 +55,16 @@ export default function Header({ provider, onProviderChange }: HeaderProps) {
       <div className="max-w-full mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            <a
+              href="https://zhisystems.ai/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Visit Zhi Systems"
+              className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm transition-opacity hover:opacity-80"
+              data-testid="link-zhi-logo"
+            >
+              <img src={zhiLogo} alt="Zhi Systems" className="h-7 w-7 object-contain" />
+            </a>
             <h1 className="text-2xl font-bold text-gray-900">GPT Bypass</h1>
             <span className="text-sm text-gray-500 font-medium">AI Text Rewriter</span>
           </div>
@@ -73,7 +84,7 @@ export default function Header({ provider, onProviderChange }: HeaderProps) {
                 </SelectContent>
               </Select>
             </div>
-            <a href="mailto:zhi@zhisystems.org" data-testid="link-contact">
+            <a href="mailto:johnmichaelkuczynski@gmail.com" data-testid="link-contact">
               <Button variant="outline" size="sm">
                 <i className="fas fa-envelope mr-2"></i>Contact Us
               </Button>
