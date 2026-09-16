@@ -8,6 +8,7 @@ import { fileProcessorService } from "./services/fileProcessor";
 import { textChunkerService } from "./services/textChunker";
 import { gptZeroService } from "./services/gptZero";
 import { aiProviderService } from "./services/aiProviders";
+import { runFaithfulRewrite } from "./services/rewriteFidelity";
 import { documentGeneratorService } from "./services/documentGenerator";
 import type { RewriteRequest, RewriteResponse } from "@shared/schema";
 
@@ -137,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewrittenText = await aiProviderService.rewrite(rewriteRequest.provider, {
+        const rewriteResult = await runFaithfulRewrite(rewriteRequest.provider, {
           inputText: rewriteRequest.inputText,
           styleText: rewriteRequest.styleText,
           contentMixText: rewriteRequest.contentMixText,
@@ -146,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mixingMode: rewriteRequest.mixingMode,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const cleanedRewrittenText = cleanMarkup(rewriteResult.rewrittenText);
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
@@ -162,6 +163,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           inputAiScore: inputAnalysis.aiScore,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
+          fidelityWarning: rewriteResult.warning,
+          claimAudit: rewriteResult.audit ? {
+            ...rewriteResult.audit,
+            retryPerformed: rewriteResult.retryPerformed,
+          } : undefined,
+          templateCleanup: {
+            removed: rewriteResult.templateRemovals,
+            flagged: rewriteResult.templateFlags,
+          },
         };
         res.json(response);
       } catch (error) {
@@ -200,16 +210,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewrittenText = await aiProviderService.rewrite(provider || originalJob.provider, {
+        const rewriteResult = await runFaithfulRewrite(provider || originalJob.provider, {
           inputText: originalJob.outputText,
-          styleText: originalJob.styleText,
-          contentMixText: originalJob.contentMixText,
-          customInstructions: customInstructions || originalJob.customInstructions,
-          selectedPresets: selectedPresets || originalJob.selectedPresets,
-          mixingMode: originalJob.mixingMode,
+          styleText: originalJob.styleText || undefined,
+          contentMixText: originalJob.contentMixText || undefined,
+          customInstructions: customInstructions || originalJob.customInstructions || undefined,
+          selectedPresets: selectedPresets || originalJob.selectedPresets || undefined,
+          mixingMode: originalJob.mixingMode || undefined,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const cleanedRewrittenText = cleanMarkup(rewriteResult.rewrittenText);
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
@@ -225,6 +235,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           inputAiScore: originalJob.outputAiScore || 0,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
+          fidelityWarning: rewriteResult.warning,
+          claimAudit: rewriteResult.audit ? {
+            ...rewriteResult.audit,
+            retryPerformed: rewriteResult.retryPerformed,
+          } : undefined,
+          templateCleanup: {
+            removed: rewriteResult.templateRemovals,
+            flagged: rewriteResult.templateFlags,
+          },
         };
         res.json(response);
       } catch (error) {

@@ -29,6 +29,7 @@ export default function Home() {
   const [inputAiScore, setInputAiScore] = useState<number | null>(null);
   const [styleAiScore, setStyleAiScore] = useState<number | null>(null);
   const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
+  const [fidelityWarning, setFidelityWarning] = useState<string | null>(null);
 
   const [inputChunks, setInputChunks] = useState<TextChunk[]>([]);
   const [selectedChunkIds, setSelectedChunkIds] = useState<string[]>([]);
@@ -100,10 +101,12 @@ export default function Home() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setOutputAiScore(data.outputAiScore);
+      setFidelityWarning(data.fidelityWarning || null);
       setLastJobId(data.jobId);
       toast({
-        title: "Rewrite Complete",
-        description: `AI detection reduced from ${data.inputAiScore}% to ${data.outputAiScore}%`,
+        title: data.fidelityWarning ? "Rewrite Complete — Review Warning" : "Rewrite Complete",
+        description: data.fidelityWarning || `AI detection reduced from ${data.inputAiScore}% to ${data.outputAiScore}%`,
+        variant: data.fidelityWarning ? "destructive" : "default",
       });
     },
     onError: (error: any) => {
@@ -125,8 +128,13 @@ export default function Home() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setOutputAiScore(data.outputAiScore);
+      setFidelityWarning(data.fidelityWarning || null);
       setLastJobId(data.jobId);
-      toast({ title: "Re-rewrite Complete", description: `AI detection score: ${data.outputAiScore}%` });
+      toast({
+        title: data.fidelityWarning ? "Re-rewrite Complete — Review Warning" : "Re-rewrite Complete",
+        description: data.fidelityWarning || `AI detection score: ${data.outputAiScore}%`,
+        variant: data.fidelityWarning ? "destructive" : "default",
+      });
     },
     onError: (error: any) => {
       toast({ title: "Re-rewrite Error", description: error.message, variant: "destructive" });
@@ -163,6 +171,7 @@ export default function Home() {
       return;
     }
 
+    setFidelityWarning(null);
     const request: RewriteRequest = {
       inputText: inputChunks.length > 0 && selectedChunkIds.length > 0
         ? inputChunks.filter(chunk => selectedChunkIds.includes(chunk.id)).map(chunk => chunk.content).join('\n\n')
@@ -184,6 +193,7 @@ export default function Home() {
       toast({ title: "No Previous Job", description: "Generate a rewrite first", variant: "destructive" });
       return;
     }
+    setFidelityWarning(null);
     reRewriteMutation.mutate({
       jobId: lastJobId,
       customInstructions: customInstructions.trim() || undefined,
@@ -206,6 +216,7 @@ export default function Home() {
     setInputAiScore(null);
     setStyleAiScore(null);
     setOutputAiScore(null);
+    setFidelityWarning(null);
     setInputChunks([]);
     setSelectedChunkIds([]);
     setLastJobId(null);
@@ -333,6 +344,7 @@ export default function Home() {
                 onChange={() => {}}
                 aiScore={outputAiScore}
                 isLoading={isProcessing}
+                warning={fidelityWarning}
                 readOnly
                 showReRewrite
                 onReRewrite={handleReRewrite}
@@ -341,6 +353,7 @@ export default function Home() {
                 onClear={() => {
                   setOutputText("");
                   setOutputAiScore(null);
+                  setFidelityWarning(null);
                   setLastJobId(null);
                 }}
               />

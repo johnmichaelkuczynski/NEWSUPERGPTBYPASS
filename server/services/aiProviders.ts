@@ -100,6 +100,7 @@ function buildRewritePrompt(params: {
   contentMixText?: string;
   selectedPresets?: string[];
   customInstructions?: string;
+  fidelityCorrections?: ClaimAuditResult;
 }): string {
   const hasStyle = !!(params.styleText && params.styleText.trim() !== "");
   const hasContent = !!(params.contentMixText && params.contentMixText.trim() !== "");
@@ -115,17 +116,36 @@ which, though logically equivalent, seem to confirmationally equivalent, in that
 A number of very contrived solutions to this paradox have been proposed, all of which either deny that there is a paradox or invent ad hoc systems of logic to validate the 'solution' in question. 
 But the real solution is clear. First of all, it is only principled generalizations that can be confirmed. Supposing that you assert (i) with the intention of affirming a principled as opposed to an accidental generalization, you are saying that instances of the property of being a raven grounds or causes instances of blackness. Read thus, (i) is most certainly not equivalent with (ii) or with any variation thereof. Be it noted that while there is a natural nomic or causal reading of (i), there is no such reading of (ii). Also be it noted that it is only principled as opposed to accidental generalizations that can be confirmed. "All metal expands when heated" can be confirmed but not "all objects in Smith's pocket expand when heated." In general, when read as principled and therefore confirmable generalization, "all x's are y's" has nomic or causal content is therefore not equivalent with "all non-y's are non-x's." Case closed on the Raven Paradox.`;
 
-  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following style sample:\n"${styleSample}"\n\n`;
+  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following style sample. Keep copying the sample's sentence structure, rhythm, definition-then-example pattern, parenthetical glosses, transitions, paragraph shape, and sentence-length variation when those structures can express the source content faithfully:\n"${styleSample}"\n\n`;
+
+  prompt += `Box B supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over Box B's arguments, logical forms (e.g., 'If A, then B,' 'Nothing can be both X and Y'), claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in Box B has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
+
+  prompt += `Do not copy numbering, example labels, footnote markers, asterisks or cross-references (e.g., '1 obviously expresses…', '2–4', '4*', 'the first type', 'as in example 3') unless the same markers appear in Box A.\n\n`;
 
   if (hasContent) {
-    prompt += `Judiciously integrate relevant ideas, examples, and details from the following content reference to enrich the rewrite:\n"${params.contentMixText}"\n\n`;
+    prompt += `Use the following content reference only to clarify the wording of claims already present in Box A. It must not contribute any new claim, example, argument, condition, or generalization:\n"${params.contentMixText}"\n\n`;
   }
 
   // <<< PRESETS/APPLIED INSTRUCTIONS HERE >>>
   prompt += buildPresetBlock(params.selectedPresets, params.customInstructions);
 
-  prompt += `Text to rewrite:\n"${params.inputText}"`;
+  if (params.fidelityCorrections) {
+    const unsupported = params.fidelityCorrections.addedClaims.length > 0
+      ? params.fidelityCorrections.addedClaims.map(claim => `- ${claim}`).join("\n")
+      : "- None";
+    const missing = params.fidelityCorrections.missingClaims.length > 0
+      ? params.fidelityCorrections.missingClaims.map(claim => `- ${claim}`).join("\n")
+      : "- None";
+    prompt += `A claim audit found problems in the previous draft. Regenerate the entire draft once and correct every item below while keeping all style constraints above.\nUnsupported claims to remove:\n${unsupported}\nMissing Box A claims to restore:\n${missing}\nDo not mention the audit or these instructions in the output.\n\n`;
+  }
+
+  prompt += `Box A — text to rewrite:\n"${params.inputText}"`;
   return prompt;
+}
+
+export interface ClaimAuditResult {
+  addedClaims: string[];
+  missingClaims: string[];
 }
 
 export interface RewriteParams {
@@ -135,6 +155,7 @@ export interface RewriteParams {
   customInstructions?: string;
   selectedPresets?: string[];
   mixingMode?: 'style' | 'content' | 'both';
+  fidelityCorrections?: ClaimAuditResult;
 }
 
 export class AIProviderService {
@@ -146,6 +167,7 @@ export class AIProviderService {
       contentMixText: params.contentMixText,
       selectedPresets: params.selectedPresets,
       customInstructions: params.customInstructions,
+      fidelityCorrections: params.fidelityCorrections,
     });
     console.log("🔥 User prompt length:", prompt.length);
     
@@ -176,6 +198,7 @@ export class AIProviderService {
       contentMixText: params.contentMixText,
       selectedPresets: params.selectedPresets,
       customInstructions: params.customInstructions,
+      fidelityCorrections: params.fidelityCorrections,
     });
     console.log("🔥 User prompt length:", prompt.length);
     
@@ -204,6 +227,7 @@ export class AIProviderService {
       contentMixText: params.contentMixText,
       selectedPresets: params.selectedPresets,
       customInstructions: params.customInstructions,
+      fidelityCorrections: params.fidelityCorrections,
     });
     
     try {
@@ -242,6 +266,7 @@ export class AIProviderService {
       contentMixText: params.contentMixText,
       selectedPresets: params.selectedPresets,
       customInstructions: params.customInstructions,
+      fidelityCorrections: params.fidelityCorrections,
     });
 
     try {
@@ -281,6 +306,7 @@ export class AIProviderService {
       contentMixText: params.contentMixText,
       selectedPresets: params.selectedPresets,
       customInstructions: params.customInstructions,
+      fidelityCorrections: params.fidelityCorrections,
     });
     
     try {
@@ -350,6 +376,145 @@ export class AIProviderService {
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
+  }
+
+  private buildClaimAuditPrompt(inputText: string, outputText: string): string {
+    return `Compare Box D against Box A for claim-level fidelity. Treat a claim as any assertion, condition, impossibility statement, generalization, example presented as fact, attribution, quantity, or logical relationship.
+
+Return JSON only in exactly this shape:
+{"addedClaims":["claims in Box D that are not supported by Box A"],"missingClaims":["claims in Box A that do not appear in Box D"]}
+
+Use an empty array when there are no problems. Ignore wording, syntax, rhythm, order, paragraphing, parenthetical glosses, and other purely stylistic differences. Do not treat a faithful paraphrase as missing or added. Be strict about invented examples, conditionals, impossibility claims, logical forms, and generalizations.
+
+Box A:
+${inputText}
+
+Box D:
+${outputText}`;
+  }
+
+  private async auditWithProvider(provider: string, prompt: string): Promise<string> {
+    switch (provider) {
+      case "openai": {
+        const response = await openai.chat.completions.create({
+          model: DEFAULT_OPENAI_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0,
+          max_tokens: 3000,
+          response_format: { type: "json_object" },
+        });
+        return response.choices[0].message.content || "";
+      }
+      case "anthropic": {
+        const response = await anthropic.messages.create({
+          model: DEFAULT_ANTHROPIC_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 3000,
+          temperature: 0,
+        });
+        const firstBlock = response.content[0];
+        return firstBlock?.type === "text" ? firstBlock.text : "";
+      }
+      case "deepseek": {
+        const response = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY_ENV_VAR || "default_key"}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0,
+            max_tokens: 3000,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!response.ok) throw new Error(`DeepSeek audit error: ${response.statusText}`);
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+      case "perplexity": {
+        const response = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY_API_KEY_ENV_VAR || "default_key"}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-sonar-small-128k-online",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0,
+            max_tokens: 3000,
+            stream: false,
+          }),
+        });
+        if (!response.ok) throw new Error(`Perplexity audit error: ${response.statusText}`);
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+      case "venice": {
+        const response = await fetch("https://api.venice.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.VENICE_API_KEY || "default_key"}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0,
+            max_tokens: 3000,
+            stream: false,
+          }),
+        });
+        if (!response.ok) throw new Error(`Venice audit error: ${response.statusText}`);
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+      default:
+        throw new Error(`Unsupported AI provider: ${provider}`);
+    }
+  }
+
+  private parseClaimAudit(raw: string): ClaimAuditResult {
+    const withoutFences = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+    const start = withoutFences.indexOf("{");
+    const end = withoutFences.lastIndexOf("}");
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error("Claim audit did not return a JSON object");
+    }
+    const parsed = JSON.parse(withoutFences.slice(start, end + 1));
+    if (!Array.isArray(parsed.addedClaims) || !Array.isArray(parsed.missingClaims)) {
+      throw new Error("Claim audit JSON is missing required arrays");
+    }
+    return {
+      addedClaims: parsed.addedClaims.filter((claim: unknown): claim is string => typeof claim === "string" && claim.trim().length > 0),
+      missingClaims: parsed.missingClaims.filter((claim: unknown): claim is string => typeof claim === "string" && claim.trim().length > 0),
+    };
+  }
+
+  async auditClaims(provider: string, inputText: string, outputText: string): Promise<ClaimAuditResult> {
+    const prompt = this.buildClaimAuditPrompt(inputText, outputText);
+    const allProviders = ["anthropic", "openai", "deepseek", "perplexity", "venice"];
+    const ordered = [provider, ...allProviders.filter(candidate => candidate !== provider)];
+    let lastError: any;
+
+    for (const candidate of ordered) {
+      try {
+        const raw = await this.auditWithProvider(candidate, prompt);
+        const audit = this.parseClaimAudit(raw);
+        if (candidate !== provider) {
+          console.warn(`Claim audit provider "${provider}" failed — used "${candidate}" as fallback.`);
+        }
+        return audit;
+      } catch (error: any) {
+        console.error(`Claim audit with "${candidate}" failed:`, error.message);
+        lastError = error;
+      }
+    }
+
+    throw new Error(`All claim audit providers failed. Last error: ${lastError?.message}`);
   }
 
   async rewrite(provider: string, params: RewriteParams): Promise<string> {

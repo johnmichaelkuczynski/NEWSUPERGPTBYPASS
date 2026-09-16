@@ -111,7 +111,17 @@ export interface RewriteRequest {
 
 export interface RewriteResponse {
   rewrittenText: string;
-  inputAiScore: number;
-  outputAiScore: number;
+  inputAiScore: number | null;
+  outputAiScore: number | null;
   jobId: string;
+  fidelityWarning?: string;
+  claimAudit?: {
+    addedClaims: string[];
+    missingClaims: string[];
+    retryPerformed: boolean;
+  };
+  templateCleanup?: {
+    removed: string[];
+    flagged: string[];
+  };
 }
