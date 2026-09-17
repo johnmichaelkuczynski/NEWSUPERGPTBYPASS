@@ -10,6 +10,7 @@ interface CustomInstructionsProps {
   isGenerating: boolean;
   canGenerate: boolean;
   selectedPresets?: string[];
+  hasStyleSample?: boolean;
   hasContentMix?: boolean;
   onClearAll?: () => void;
 }
@@ -21,6 +22,7 @@ export default function CustomInstructions({
   isGenerating,
   canGenerate,
   selectedPresets = [],
+  hasStyleSample = false,
   hasContentMix = false,
   onClearAll,
 }: CustomInstructionsProps) {
@@ -34,7 +36,7 @@ export default function CustomInstructions({
               AI Text Rewriter
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Transform your text using the built-in narrative style
+              Transform your text with AI detection bypass and style customization
             </p>
           </div>
           
@@ -44,6 +46,12 @@ export default function CustomInstructions({
               <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                 <i className="fas fa-cog mr-1"></i>
                 {selectedPresets.length} Preset{selectedPresets.length > 1 ? 's' : ''}
+              </Badge>
+            )}
+            {hasStyleSample && (
+              <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                <i className="fas fa-palette mr-1"></i>
+                Style Sample
               </Badge>
             )}
             {hasContentMix && (

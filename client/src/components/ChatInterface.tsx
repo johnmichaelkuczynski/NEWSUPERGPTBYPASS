@@ -16,13 +16,15 @@ interface ChatMessage {
 
 interface ChatInterfaceProps {
   inputText: string;
+  styleText: string;
   contentMixText: string;
   outputText: string;
-  onSendToBox: (boxId: 'input' | 'content' | 'output', text: string) => void;
+  onSendToBox: (boxId: 'input' | 'style' | 'content' | 'output', text: string) => void;
 }
 
 export default function ChatInterface({ 
   inputText, 
+  styleText, 
   contentMixText, 
   outputText, 
   onSendToBox 
@@ -63,6 +65,7 @@ export default function ChatInterface({
           provider: selectedProvider,
           context: {
             inputText: inputText || null,
+            styleText: styleText || null,
             contentMixText: contentMixText || null,
             outputText: outputText || null
           }
@@ -131,6 +134,15 @@ export default function ChatInterface({
                 title="Send entire chat to Input Box (A)"
               >
                 A
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSendToBox('style', messages.map(m => `${m.role}: ${m.content}`).join('\n\n'))}
+                className="px-2 py-1 text-xs"
+                title="Send entire chat to Style Box (B)"
+              >
+                B
               </Button>
               <Button 
                 variant="outline" 
@@ -210,6 +222,13 @@ export default function ChatInterface({
                         →A
                       </button>
                       <button
+                        onClick={() => onSendToBox('style', message.content)}
+                        className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                        title="Send to Style Box (B)"
+                      >
+                        →B
+                      </button>
+                      <button
                         onClick={() => onSendToBox('content', message.content)}
                         className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
                         title="Send to Content Box (C)"
@@ -250,6 +269,13 @@ export default function ChatInterface({
               +A
             </button>
             <button
+              onClick={() => setInput(prev => prev + (prev ? '\n\n' : '') + `Style Box B: "${styleText}"`)}
+              disabled={!styleText || isLoading}
+              className="px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
+            >
+              +B
+            </button>
+            <button
               onClick={() => setInput(prev => prev + (prev ? '\n\n' : '') + `Content Box C: "${contentMixText}"`)}
               disabled={!contentMixText || isLoading}
               className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 disabled:opacity-50"
@@ -270,7 +296,7 @@ export default function ChatInterface({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask the AI anything... Use +A/C/D buttons to reference box contents. (Press Enter to send, Shift+Enter for new line)"
+              placeholder="Ask the AI anything... Use +A/B/C/D buttons to reference box contents. (Press Enter to send, Shift+Enter for new line)"
               className="min-h-[80px] resize-none"
               disabled={isLoading}
             />
@@ -286,8 +312,8 @@ export default function ChatInterface({
         </div>
 
         <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
-          <strong>Features:</strong> AI knows about the available box contents • Use +A/C/D to reference boxes • Use →A/C/D buttons to send AI responses to boxes<br/>
-          <strong>Quick tests:</strong> "Which LLM am I using?", "Rewrite my input text", "Improve the content reference"
+          <strong>Features:</strong> AI knows about all box contents • Use +A/B/C/D to reference boxes • Use →A/B/C buttons to send AI responses to boxes<br/>
+          <strong>Quick tests:</strong> "Which LLM am I using?", "Rewrite my input text", "Analyze the style sample", "Improve the content reference"
         </div>
       </CardContent>
     </Card>

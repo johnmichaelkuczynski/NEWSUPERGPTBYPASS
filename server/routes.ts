@@ -8,8 +8,6 @@ import { fileProcessorService } from "./services/fileProcessor";
 import { textChunkerService } from "./services/textChunker";
 import { gptZeroService } from "./services/gptZero";
 import { aiProviderService } from "./services/aiProviders";
-import { runFaithfulRewrite } from "./services/rewriteFidelity";
-import { getMasterStyleExcerpt } from "./services/masterStyle";
 import { documentGeneratorService } from "./services/documentGenerator";
 import type { RewriteRequest, RewriteResponse } from "@shared/schema";
 
@@ -88,7 +86,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const gptZeroResult = await gptZeroService.analyzeText(text);
-      const styleExcerpt = getMasterStyleExcerpt(text);
       const wordCount = text.trim().split(/\s+/).length;
       const chunks = wordCount > 500 ? textChunkerService.chunkText(text) : [];
 
@@ -105,7 +102,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wordCount,
         chunks,
         needsChunking: wordCount > 500,
-        styleExcerpt,
       });
     } catch (error: any) {
       console.error('Text analysis error:', error);
@@ -122,14 +118,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const inputText = rewriteRequest.inputText;
-      const operativeStyleText = getMasterStyleExcerpt(inputText);
       const inputAnalysis = inputText.length >= 1 && inputText.length <= 150000
         ? await gptZeroService.analyzeText(inputText)
         : { aiScore: null };
 
       const rewriteJob = await storage.createRewriteJob({
         inputText: rewriteRequest.inputText,
-        styleText: operativeStyleText,
+        styleText: rewriteRequest.styleText,
         contentMixText: rewriteRequest.contentMixText,
         customInstructions: rewriteRequest.customInstructions,
         selectedPresets: rewriteRequest.selectedPresets,
@@ -142,16 +137,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewriteResult = await runFaithfulRewrite(rewriteRequest.provider, {
+        const rewrittenText = await aiProviderService.rewrite(rewriteRequest.provider, {
           inputText: rewriteRequest.inputText,
-          styleText: operativeStyleText,
+          styleText: rewriteRequest.styleText,
           contentMixText: rewriteRequest.contentMixText,
           customInstructions: rewriteRequest.customInstructions,
           selectedPresets: rewriteRequest.selectedPresets,
           mixingMode: rewriteRequest.mixingMode,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewriteResult.rewrittenText);
+        const cleanedRewrittenText = cleanMarkup(rewrittenText);
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
@@ -164,19 +159,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
-          styleExcerpt: operativeStyleText,
           inputAiScore: inputAnalysis.aiScore,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
-          fidelityWarning: rewriteResult.warning,
-          claimAudit: rewriteResult.audit ? {
-            ...rewriteResult.audit,
-            retryPerformed: rewriteResult.retryPerformed,
-          } : undefined,
-          templateCleanup: {
-            removed: rewriteResult.templateRemovals,
-            flagged: rewriteResult.templateFlags,
-          },
         };
         res.json(response);
       } catch (error) {
@@ -199,11 +184,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!originalJob || !originalJob.outputText) {
         return res.status(404).json({ message: "Original job not found or incomplete" });
       }
-      const operativeStyleText = getMasterStyleExcerpt(originalJob.outputText);
 
       const rewriteJob = await storage.createRewriteJob({
         inputText: originalJob.outputText,
-        styleText: operativeStyleText,
+        styleText: originalJob.styleText,
         contentMixText: originalJob.contentMixText,
         customInstructions: customInstructions || originalJob.customInstructions,
         selectedPresets: selectedPresets || originalJob.selectedPresets,
@@ -216,16 +200,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewriteResult = await runFaithfulRewrite(provider || originalJob.provider, {
+        const rewrittenText = await aiProviderService.rewrite(provider || originalJob.provider, {
           inputText: originalJob.outputText,
-          styleText: operativeStyleText,
-          contentMixText: originalJob.contentMixText || undefined,
-          customInstructions: customInstructions || originalJob.customInstructions || undefined,
-          selectedPresets: selectedPresets || originalJob.selectedPresets || undefined,
-          mixingMode: originalJob.mixingMode || undefined,
+          styleText: originalJob.styleText,
+          contentMixText: originalJob.contentMixText,
+          customInstructions: customInstructions || originalJob.customInstructions,
+          selectedPresets: selectedPresets || originalJob.selectedPresets,
+          mixingMode: originalJob.mixingMode,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewriteResult.rewrittenText);
+        const cleanedRewrittenText = cleanMarkup(rewrittenText);
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
@@ -238,19 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
-          styleExcerpt: operativeStyleText,
           inputAiScore: originalJob.outputAiScore || 0,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
-          fidelityWarning: rewriteResult.warning,
-          claimAudit: rewriteResult.audit ? {
-            ...rewriteResult.audit,
-            retryPerformed: rewriteResult.retryPerformed,
-          } : undefined,
-          templateCleanup: {
-            removed: rewriteResult.templateRemovals,
-            flagged: rewriteResult.templateFlags,
-          },
         };
         res.json(response);
       } catch (error) {
