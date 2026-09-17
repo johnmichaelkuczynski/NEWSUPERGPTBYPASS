@@ -44,3 +44,33 @@ mtime_ms = 1789621166618
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:766f20a1-70ec-4e77-a66b-de17fecfdbdf/09fc1dac-de45-4d0f-84d7-1b733012a9ff/4d4a92ef-b29e-4dbd-950d-a6e9a1776b39"
 storage_version_token = "1789621185647688"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "rGOa2IhTHPvzBzoWKOrB8"
+uri = "file://attached_assets/generated_audio/gptbypass_comparison_part2.mp3"
+type = "audio"
+title = "GPT Bypass comparison part two"
+description = "Text-to-speech audio: Now we begin the second part. These are the same original passages. Once again, GPTZero identifies each one as AI-written. But this time, we process them with PaperBleach. Watch…"
+logical_id = "11270ca2-baaa-48d6-8f1a-c6d5b89aedee"
+
+[[outputs]]
+id = "tmea-RQmBXNMG8LcoPYg9"
+uri = "file://attached_assets/generated_audio/gptbypass_comparison_part1.mp3"
+type = "audio"
+title = "GPT Bypass comparison part one"
+description = "Text-to-speech audio: This demonstration has two parts. In the first, we show that GPT Bypass works. In the second, we use the exact same passages to show that PaperBleach does not. GPT Bypass is ava…"
+logical_id = "1cd55a52-fe1f-4824-8f19-ef6b3869e8d9"
+
+[[outputs]]
+id = "rWWRGgydbvFLoJLLnFMEE"
+uri = "file://output/gptbypass_vs_paperbleach_comparison.mp4"
+type = "video"
+title = "GPT Bypass vs. PaperBleach"
+description = "140.6-second full-screen comparison video with synchronized American male narration, no music, and the spoken URL gptbypass dot ink."
+logical_id = "1547ca7a-508a-4bfb-b27a-02d28fd950ce"
+content_hash = "sha256:6d4e3122bca7fd1e5d156b96b45a6808c23e4b4947420cc03feb50e211af2b7d"
+size = 17194394
+mtime_ms = 1789622080974
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:766f20a1-70ec-4e77-a66b-de17fecfdbdf/1547ca7a-508a-4bfb-b27a-02d28fd950ce/0e42da94-1d7e-4411-a1b9-7becd14a7459"
+storage_version_token = "1789622100994405"
+content_type = "video/mp4"
