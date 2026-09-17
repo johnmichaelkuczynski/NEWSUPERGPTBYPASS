@@ -111,6 +111,7 @@ export interface RewriteRequest {
 
 export interface RewriteResponse {
   rewrittenText: string;
+  styleExcerpt: string;
   inputAiScore: number | null;
   outputAiScore: number | null;
   jobId: string;

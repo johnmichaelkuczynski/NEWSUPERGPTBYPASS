@@ -105,6 +105,9 @@ function buildRewritePrompt(params: {
   const inputWordCount = params.inputText.trim().split(/\s+/).filter(Boolean).length;
   const minimumOutputWords = Math.max(1, Math.floor(inputWordCount * 0.85));
   const maximumOutputWords = Math.max(minimumOutputWords, Math.ceil(inputWordCount * 1.2));
+  const cadenceInstruction = inputWordCount >= 80
+    ? "Use visibly uneven cadence: include at least one very short sentence or fragment, combine some neighboring claims into a longer sentence, and vary how sentences begin. Do not repeat the source's sentence sequence mechanically."
+    : "Vary the sentence structure and cadence without adding words merely to create length.";
   const hasStyle = !!(params.styleText && params.styleText.trim() !== "");
   const hasContent = !!(params.contentMixText && params.contentMixText.trim() !== "");
   const styleSample = hasStyle ? params.styleText! : `DEFAULT STYLE SAMPLE (The Raven Paradox):
@@ -124,6 +127,8 @@ But the real solution is clear. First of all, it is only principled generalizati
   prompt += `The master narrative excerpt supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over the excerpt's plot, characters, setting, arguments, logical forms, claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in the excerpt has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
 
   prompt += `Keep the output approximately the same length as Box A: ${minimumOutputWords}-${maximumOutputWords} words. Begin directly with Box A's content. Do not add attention-getters, announcements, framing language, or introductory commands. Do not put the output in quotation marks unless Box A is quoted. Do not turn expository source text into a scene or story. Do not invent a narrator, character, location, action, dialogue, quotation, sensory detail, motive, emotion, metaphor, prediction, or background fact. Use the excerpt's prose mechanics only.\n\n`;
+
+  prompt += `This must be a genuine rewrite, not a lightly edited copy. Rebuild every sentence rather than swapping a few synonyms. Do not retain any source phrase longer than eight words unless it is a name, quotation, technical term, or wording that cannot be changed without changing the claim. Reorder clauses and redistribute claims across sentences where meaning permits. ${cadenceInstruction} Avoid the polished stock progression common to generic AI prose: uniform sentence lengths, repeated subject-first declarations, tidy three-part summaries, and smooth transition words at every turn.\n\n`;
 
   prompt += `Do not copy numbering, labels, chapter markers, footnote markers, asterisks or cross-references unless the same markers appear in Box A.\n\n`;
 
@@ -217,8 +222,13 @@ export class AIProviderService {
         max_tokens: 4000,
       });
 
-      console.log("🔥 Anthropic response received, length:", response.content[0].text?.length || 0);
-      return this.cleanMarkup(response.content[0].text || "");
+      const text = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === "text")
+        .map(block => block.text)
+        .join("\n")
+        .trim();
+      console.log("🔥 Anthropic response received, length:", text.length);
+      return this.cleanMarkup(text);
     } catch (error: any) {
       console.error("🔥 ANTHROPIC API ERROR:", error);
       throw new Error(`Anthropic API error: ${error.message}`);
@@ -415,10 +425,12 @@ ${outputText}`;
           model: DEFAULT_ANTHROPIC_MODEL,
           messages: [{ role: "user", content: prompt }],
           max_tokens: 3000,
-          temperature: 0,
         });
-        const firstBlock = response.content[0];
-        return firstBlock?.type === "text" ? firstBlock.text : "";
+        return response.content
+          .filter((block): block is Anthropic.TextBlock => block.type === "text")
+          .map(block => block.text)
+          .join("\n")
+          .trim();
       }
       case "deepseek": {
         const response = await fetch("https://api.deepseek.com/chat/completions", {

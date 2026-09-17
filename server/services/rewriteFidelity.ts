@@ -106,7 +106,9 @@ function applyDeterministicFidelityGuards(
     );
   }
 
-  const quotePattern = /["“”‘’]/;
+  // Apostrophes in contractions are ordinary prose, not quotation formatting.
+  // Only double-quotation marks are safe to treat deterministically here.
+  const quotePattern = /["“”]/;
   if (!quotePattern.test(inputText) && quotePattern.test(outputText)) {
     guarded.addedClaims.push(
       "The draft introduced quotation or dialogue formatting that does not appear in Box A. Remove it and state only Box A's content directly.",

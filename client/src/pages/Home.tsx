@@ -15,6 +15,7 @@ import type { TextChunk, RewriteRequest, RewriteResponse } from "@shared/schema"
 export default function Home() {
   const [provider, setProvider] = useState<string>("anthropic");
   const [inputText, setInputText] = useState("");
+  const [styleExcerpt, setStyleExcerpt] = useState("");
   const [outputText, setOutputText] = useState("");
   const [customInstructions, setCustomInstructions] = useState("Preserve every source claim and its meaning.");
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
@@ -86,6 +87,7 @@ export default function Home() {
     },
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
+      setStyleExcerpt(data.styleExcerpt);
       setOutputAiScore(data.outputAiScore);
       setFidelityWarning(data.fidelityWarning || null);
       setLastJobId(data.jobId);
@@ -113,6 +115,7 @@ export default function Home() {
     },
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
+      setStyleExcerpt(data.styleExcerpt);
       setOutputAiScore(data.outputAiScore);
       setFidelityWarning(data.fidelityWarning || null);
       setLastJobId(data.jobId);
@@ -181,6 +184,7 @@ export default function Home() {
   const handleClearAll = () => {
     setInputText("");
     setContentMixText("");
+    setStyleExcerpt("");
     setOutputText("");
     setCustomInstructions("");
     setInputAiScore(null);
@@ -263,6 +267,15 @@ export default function Home() {
               />
 
               <TextBox
+                title="Book Passage Used (Box B)"
+                icon="fas fa-book-open"
+                placeholder="The exact Nineteen Eighty-Four passage used for the rewrite will appear here..."
+                value={styleExcerpt}
+                onChange={() => {}}
+                readOnly
+              />
+
+              <TextBox
                 title="Content Reference (Box C)"
                 icon="fas fa-layer-group"
                 placeholder="Paste or upload content you want to blend with your text..."
@@ -299,6 +312,7 @@ export default function Home() {
                   setOutputText("");
                   setOutputAiScore(null);
                   setFidelityWarning(null);
+                  setStyleExcerpt("");
                   setLastJobId(null);
                 }}
               />

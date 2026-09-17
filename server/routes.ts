@@ -162,6 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
+          styleExcerpt: operativeStyleText,
           inputAiScore: inputAnalysis.aiScore,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
@@ -235,6 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
+          styleExcerpt: operativeStyleText,
           inputAiScore: originalJob.outputAiScore || 0,
           outputAiScore: outputAnalysis.aiScore,
           jobId: rewriteJob.id,
