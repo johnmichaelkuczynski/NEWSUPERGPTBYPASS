@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useBoxAFileUpload } from "@/hooks/useBoxAFileUpload";
+import { cn } from "@/lib/utils";
 
 interface TextBoxProps {
   title: string;
@@ -29,6 +30,7 @@ interface TextBoxProps {
   onClear?: () => void;
   onEnterSubmit?: () => void;
   canSubmit?: boolean;
+  containerClassName?: string;
 }
 
 export default function TextBox({
@@ -53,6 +55,7 @@ export default function TextBox({
   onClear,
   onEnterSubmit,
   canSubmit = false,
+  containerClassName,
 }: TextBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -122,7 +125,7 @@ export default function TextBox({
   };
 
   return (
-    <div className="text-box-container">
+    <div className={cn("text-box-container", containerClassName ?? "h-[500px]")}>
       <div className="text-box-header">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">

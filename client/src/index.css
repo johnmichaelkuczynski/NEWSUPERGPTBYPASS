@@ -80,7 +80,7 @@
 
 @layer components {
   .text-box-container {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[500px];
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col;
   }
   
   .text-box-header {

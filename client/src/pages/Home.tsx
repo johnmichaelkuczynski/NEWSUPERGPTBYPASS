@@ -263,8 +263,8 @@ export default function Home() {
         />
 
         <main className="flex-1 overflow-y-auto min-w-0">
-          <div className="p-6">
-            <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="p-3">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <TextBox
                 title="Input Text (Box A)"
                 icon="fas fa-upload"
@@ -287,42 +287,7 @@ export default function Home() {
                 }}
                 onEnterSubmit={handleGenerateRewrite}
                 canSubmit={!!inputText.trim()}
-              />
-
-              <TextBox
-                title="Style Sample (Box B)"
-                icon="fas fa-palette"
-                placeholder="Paste or upload a sample of human-written text whose style you want to mimic..."
-                value={styleText}
-                onChange={handleStyleTextChange}
-                aiScore={styleAiScore}
-                isLoading={analyzeTextMutation.isPending}
-                supportFileUpload
-                onClear={() => {
-                  setStyleText("");
-                  setStyleAiScore(null);
-                }}
-                onEnterSubmit={handleGenerateRewrite}
-                canSubmit={!!inputText.trim()}
-              />
-
-              <TextBox
-                title="Content Reference (Box C)"
-                icon="fas fa-layer-group"
-                placeholder="Paste or upload content you want to blend with your text..."
-                value={contentMixText}
-                onChange={(text) => {
-                  setContentMixText(text);
-                  setMixingMode(text.trim() ? (styleText.trim() ? 'both' : 'content') : 'style');
-                }}
-                isLoading={analyzeTextMutation.isPending}
-                supportFileUpload
-                onClear={() => {
-                  setContentMixText("");
-                  setMixingMode(styleText.trim() ? 'style' : 'style');
-                }}
-                onEnterSubmit={handleGenerateRewrite}
-                canSubmit={!!inputText.trim()}
+                containerClassName="h-[900px]"
               />
 
               <TextBox
@@ -343,6 +308,45 @@ export default function Home() {
                   setOutputAiScore(null);
                   setLastJobId(null);
                 }}
+                containerClassName="h-[900px]"
+              />
+
+              <TextBox
+                title="Style Sample (Box B)"
+                icon="fas fa-palette"
+                placeholder="Paste or upload a sample of human-written text whose style you want to mimic..."
+                value={styleText}
+                onChange={handleStyleTextChange}
+                aiScore={styleAiScore}
+                isLoading={analyzeTextMutation.isPending}
+                supportFileUpload
+                onClear={() => {
+                  setStyleText("");
+                  setStyleAiScore(null);
+                }}
+                onEnterSubmit={handleGenerateRewrite}
+                canSubmit={!!inputText.trim()}
+                containerClassName="h-[300px]"
+              />
+
+              <TextBox
+                title="Content Reference (Box C)"
+                icon="fas fa-layer-group"
+                placeholder="Paste or upload content you want to blend with your text..."
+                value={contentMixText}
+                onChange={(text) => {
+                  setContentMixText(text);
+                  setMixingMode(text.trim() ? (styleText.trim() ? 'both' : 'content') : 'style');
+                }}
+                isLoading={analyzeTextMutation.isPending}
+                supportFileUpload
+                onClear={() => {
+                  setContentMixText("");
+                  setMixingMode(styleText.trim() ? 'style' : 'style');
+                }}
+                onEnterSubmit={handleGenerateRewrite}
+                canSubmit={!!inputText.trim()}
+                containerClassName="h-[300px]"
               />
             </div>
 
