@@ -109,6 +109,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/compare-meaning", async (req, res) => {
+    try {
+      const { inputText, outputText, provider } = req.body;
+      if (!inputText || typeof inputText !== 'string' || !outputText || typeof outputText !== 'string') {
+        return res.status(400).json({ message: "Both input and output text are required" });
+      }
+      if (!provider || !['openai', 'anthropic', 'deepseek', 'perplexity', 'venice'].includes(provider)) {
+        return res.status(400).json({ message: "A valid provider is required" });
+      }
+      if (inputText.length > 150000 || outputText.length > 150000) {
+        return res.status(400).json({ message: "Input and output must each be 150,000 characters or fewer" });
+      }
+
+      const comparison = await aiProviderService.compareMeaning(provider, inputText, outputText);
+      res.json(comparison);
+    } catch (error: any) {
+      console.error('Meaning comparison error:', error);
+      res.status(500).json({ message: error.message || "Meaning comparison failed" });
+    }
+  });
+
   // Rewrite text endpoint
   app.post("/api/rewrite", async (req, res) => {
     try {

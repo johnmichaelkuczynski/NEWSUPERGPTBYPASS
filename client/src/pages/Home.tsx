@@ -7,6 +7,7 @@ import ChunkSelectionModal from "@/components/ChunkSelectionModal";
 import DownloadModal from "@/components/DownloadModal";
 import ChatInterface from "@/components/ChatInterface";
 import ApiKeyManager from "@/components/ApiKeyManager";
+import MeaningComparisonModal, { type MeaningComparison } from "@/components/MeaningComparisonModal";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -34,6 +35,8 @@ export default function Home() {
   const [selectedChunkIds, setSelectedChunkIds] = useState<string[]>([]);
   const [showChunkModal, setShowChunkModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [meaningComparison, setMeaningComparison] = useState<MeaningComparison | null>(null);
+  const [showMeaningComparison, setShowMeaningComparison] = useState(false);
 
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -130,6 +133,22 @@ export default function Home() {
     },
     onError: (error: any) => {
       toast({ title: "Re-rewrite Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const compareMeaningMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/compare-meaning", {
+        method: "POST",
+        body: { inputText, outputText, provider },
+      }) as MeaningComparison;
+    },
+    onSuccess: (data) => {
+      setMeaningComparison(data);
+      setShowMeaningComparison(true);
+    },
+    onError: (error: any) => {
+      toast({ title: "Meaning Comparison Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -303,6 +322,9 @@ export default function Home() {
                 onReRewrite={handleReRewrite}
                 canReRewrite={!!lastJobId && !isProcessing}
                 onDownload={() => setShowDownloadModal(true)}
+                onCompareMeaning={() => compareMeaningMutation.mutate()}
+                canCompareMeaning={!!inputText.trim() && !!outputText.trim() && !isProcessing}
+                isComparingMeaning={compareMeaningMutation.isPending}
                 onClear={() => {
                   setOutputText("");
                   setOutputAiScore(null);
@@ -406,6 +428,12 @@ export default function Home() {
         onClose={() => setShowDownloadModal(false)}
         content={outputText}
         filename="rewritten-text"
+      />
+
+      <MeaningComparisonModal
+        result={meaningComparison}
+        isOpen={showMeaningComparison}
+        onClose={() => setShowMeaningComparison(false)}
       />
     </div>
   );

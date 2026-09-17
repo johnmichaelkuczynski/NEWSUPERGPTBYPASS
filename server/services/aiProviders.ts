@@ -135,18 +135,30 @@ export interface RewriteParams {
   customInstructions?: string;
   selectedPresets?: string[];
   mixingMode?: 'style' | 'content' | 'both';
+  rawPrompt?: string;
+}
+
+export interface MeaningComparison {
+  sameMeaning: boolean;
+  confidence: number;
+  summary: string;
+  differences: Array<{
+    category: 'omission' | 'addition' | 'contradiction' | 'qualification' | 'entity' | 'number' | 'causal_or_logical' | 'other';
+    inputMeaning: string;
+    outputMeaning: string;
+    explanation: string;
+    severity: 'minor' | 'material';
+  }>;
+}
+
+function getPrompt(params: RewriteParams): string {
+  return params.rawPrompt || buildRewritePrompt(params);
 }
 
 export class AIProviderService {
   async rewriteWithOpenAI(params: RewriteParams): Promise<string> {
     console.log("🔥 CALLING OPENAI API - Input length:", params.inputText?.length || 0);
-    const prompt = buildRewritePrompt({
-      inputText: params.inputText,
-      styleText: params.styleText,
-      contentMixText: params.contentMixText,
-      selectedPresets: params.selectedPresets,
-      customInstructions: params.customInstructions,
-    });
+    const prompt = getPrompt(params);
     console.log("🔥 User prompt length:", prompt.length);
     
     try {
@@ -170,13 +182,7 @@ export class AIProviderService {
 
   async rewriteWithAnthropic(params: RewriteParams): Promise<string> {
     console.log("🔥 CALLING ANTHROPIC API - Input length:", params.inputText?.length || 0);
-    const prompt = buildRewritePrompt({
-      inputText: params.inputText,
-      styleText: params.styleText,
-      contentMixText: params.contentMixText,
-      selectedPresets: params.selectedPresets,
-      customInstructions: params.customInstructions,
-    });
+    const prompt = getPrompt(params);
     console.log("🔥 User prompt length:", prompt.length);
     
     try {
@@ -198,13 +204,7 @@ export class AIProviderService {
   }
 
   async rewriteWithPerplexity(params: RewriteParams): Promise<string> {
-    const prompt = buildRewritePrompt({
-      inputText: params.inputText,
-      styleText: params.styleText,
-      contentMixText: params.contentMixText,
-      selectedPresets: params.selectedPresets,
-      customInstructions: params.customInstructions,
-    });
+    const prompt = getPrompt(params);
     
     try {
       const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -236,13 +236,7 @@ export class AIProviderService {
   }
 
   async rewriteWithVenice(params: RewriteParams): Promise<string> {
-    const prompt = buildRewritePrompt({
-      inputText: params.inputText,
-      styleText: params.styleText,
-      contentMixText: params.contentMixText,
-      selectedPresets: params.selectedPresets,
-      customInstructions: params.customInstructions,
-    });
+    const prompt = getPrompt(params);
 
     try {
       const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
@@ -275,13 +269,7 @@ export class AIProviderService {
   }
 
   async rewriteWithDeepSeek(params: RewriteParams): Promise<string> {
-    const prompt = buildRewritePrompt({
-      inputText: params.inputText,
-      styleText: params.styleText,
-      contentMixText: params.contentMixText,
-      selectedPresets: params.selectedPresets,
-      customInstructions: params.customInstructions,
-    });
+    const prompt = getPrompt(params);
     
     try {
       const response = await fetch('https://api.deepseek.com/chat/completions', {
@@ -373,6 +361,56 @@ export class AIProviderService {
       }
     }
     throw new Error(`All AI providers failed. Last error: ${lastError?.message}`);
+  }
+
+  async compareMeaning(provider: string, inputText: string, outputText: string): Promise<MeaningComparison> {
+    const prompt = `Compare INPUT and OUTPUT for semantic equivalence. Determine whether they communicate the same claims, facts, entities, quantities, qualifications, causal relationships, logical relationships, conclusions, and level of certainty.
+
+Do not judge writing style, wording, sentence order, length, or AI-detection likelihood. A stylistic change is not a meaning difference. Report every substantive omission, addition, contradiction, changed qualification, changed entity or number, and changed causal or logical relationship.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "sameMeaning": true,
+  "confidence": 0,
+  "summary": "Plain-language conclusion.",
+  "differences": [
+    {
+      "category": "omission|addition|contradiction|qualification|entity|number|causal_or_logical|other",
+      "inputMeaning": "What the input says.",
+      "outputMeaning": "What the output says or omits.",
+      "explanation": "Why this changes meaning.",
+      "severity": "minor|material"
+    }
+  ]
+}
+
+Use sameMeaning=true only when there are no substantive differences. confidence must be an integer from 0 to 100. If meanings match, differences must be [].
+
+INPUT:
+${inputText}
+
+OUTPUT:
+${outputText}`;
+
+    const raw = await this.rewrite(provider, { inputText, rawPrompt: prompt });
+    const jsonText = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!jsonText) {
+      throw new Error("Meaning comparison returned an invalid response");
+    }
+
+    const parsed = JSON.parse(jsonText);
+    return {
+      sameMeaning: parsed.sameMeaning === true,
+      confidence: Math.max(0, Math.min(100, Math.round(Number(parsed.confidence) || 0))),
+      summary: typeof parsed.summary === 'string' ? parsed.summary : "Comparison completed.",
+      differences: Array.isArray(parsed.differences) ? parsed.differences.map((difference: any) => ({
+        category: difference.category || 'other',
+        inputMeaning: String(difference.inputMeaning || ''),
+        outputMeaning: String(difference.outputMeaning || ''),
+        explanation: String(difference.explanation || ''),
+        severity: difference.severity === 'material' ? 'material' : 'minor',
+      })) : [],
+    };
   }
 }
 

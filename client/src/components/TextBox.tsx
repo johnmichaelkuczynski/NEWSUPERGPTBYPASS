@@ -27,6 +27,9 @@ interface TextBoxProps {
   onReRewrite?: () => void;
   canReRewrite?: boolean;
   onDownload?: () => void;
+  onCompareMeaning?: () => void;
+  canCompareMeaning?: boolean;
+  isComparingMeaning?: boolean;
   onClear?: () => void;
   onEnterSubmit?: () => void;
   canSubmit?: boolean;
@@ -52,6 +55,9 @@ export default function TextBox({
   onReRewrite,
   canReRewrite = false,
   onDownload,
+  onCompareMeaning,
+  canCompareMeaning = false,
+  isComparingMeaning = false,
   onClear,
   onEnterSubmit,
   canSubmit = false,
@@ -193,6 +199,17 @@ export default function TextBox({
             {readOnly && onDownload && value && (
               <Button variant="outline" size="sm" onClick={onDownload}>
                 <i className="fas fa-download mr-1"></i>Download
+              </Button>
+            )}
+            {readOnly && onCompareMeaning && value && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCompareMeaning}
+                disabled={!canCompareMeaning || isComparingMeaning}
+              >
+                <i className="fas fa-scale-balanced mr-1"></i>
+                {isComparingMeaning ? "Comparing..." : "Compare Meaning"}
               </Button>
             )}
           </div>
