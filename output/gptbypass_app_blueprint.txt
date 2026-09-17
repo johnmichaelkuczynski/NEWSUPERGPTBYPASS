@@ -1,0 +1,938 @@
+GPT BYPASS APPLICATION BLUEPRINT
+Prepared as a technical handoff for Grok
+Current product URL: https://gptbypass.ink
+
+
+PURPOSE OF THIS DOCUMENT
+
+This document describes the application as it currently exists. It is intended to let Grok recommend narrowly targeted improvements without guessing about the architecture or replacing working functionality.
+
+Important constraints for any recommendations:
+
+1. Preserve the existing interface unless a specific change is requested.
+2. Preserve every working feature.
+3. Do not replace Passport.js Google OAuth with Clerk, Replit Auth, Auth.js, or another authentication system.
+4. Do not place login in front of anonymous prospects. The application must remain viewable and usable before login.
+5. Do not begin payment or Stripe work unless explicitly requested.
+6. The central product goal is richer, nuanced rewriting modeled on selected writing samples while preserving the source meaning.
+7. Recommendations should distinguish prompt tuning, model selection, pipeline changes, interface changes, security changes, and infrastructure changes.
+
+
+1. PRODUCT SUMMARY
+
+GPT Bypass is a full-stack web application for rewriting text.
+
+The user supplies:
+
+1. Input Text in Box A.
+2. An optional Style Sample in Box B.
+3. An optional Content Reference in Box C.
+4. Optional instruction presets.
+5. Optional custom instructions.
+6. A selected language-model provider.
+
+The application sends these inputs to a selected AI provider. The resulting rewrite appears in Box D. GPTZero scores can be displayed before and after rewriting.
+
+The application also supports:
+
+1. File uploads.
+2. Stored writing samples.
+3. Long-text chunk selection.
+4. Re-rewriting a previous output.
+5. Exporting output as TXT, DOCX, or PDF.
+6. A multi-provider chat interface.
+7. Direct Google OAuth.
+8. Visit analytics for an administrator.
+
+
+2. CURRENT USER INTERFACE
+
+Technology:
+
+React 18
+TypeScript
+Vite
+Tailwind CSS
+Radix UI components
+TanStack React Query
+Wouter routing
+
+Primary route:
+
+/ renders the complete application.
+
+All other paths render a basic 404 page.
+
+Header:
+
+1. Small Zhi logo linked to https://zhisystems.ai/
+2. GPT Bypass product name.
+3. AI Text Rewriter subtitle.
+4. LLM Provider selector.
+5. Contact Us link addressed to johnmichaelkuczynski@gmail.com.
+6. Google sign-in or signed-in user controls.
+
+Provider labels:
+
+Zhi 1 maps to openai.
+Zhi 2 maps to anthropic.
+Zhi 3 maps to deepseek.
+Zhi 4 maps to perplexity.
+Zhi 5 maps to venice.
+
+Main layout:
+
+The page has a fixed header, a resizable left sidebar, a narrow drag handle, and a scrollable main workspace.
+
+The sidebar starts at 300 pixels wide and can be resized between 160 and 600 pixels.
+
+The main text workspace uses a two-column grid.
+
+The first row contains the two primary boxes:
+
+Box A: Input Text
+Box D: Rewritten Output
+
+These boxes are side by side and currently 900 pixels tall.
+
+The second row contains the two secondary boxes:
+
+Box B: Style Sample
+Box C: Content Reference
+
+These boxes are side by side and currently 300 pixels tall.
+
+Spacing has been reduced to 12 pixels around and between the boxes.
+
+Box A actions:
+
+1. Humanize initiates the rewrite.
+2. Clear appears beneath Humanize when Box A contains text.
+3. Upload File accepts supported documents.
+4. Copy appears when text is present.
+5. Control or Command plus Enter also initiates rewriting.
+
+Box D actions:
+
+1. Clear.
+2. Copy.
+3. Download.
+4. Re-rewrite Output.
+
+Lower workspace:
+
+1. Custom Instructions panel.
+2. Status badges for selected presets, style sample, and content reference.
+3. Delete All action.
+4. Quick tips.
+5. Multi-provider chat panel.
+
+The former Start Rewrite button in the lower instructions panel was removed. Humanize in Box A is the only primary rewrite button.
+
+Responsive limitation:
+
+The current interface is desktop-oriented. The two-column text grid, fixed header controls, and resizable sidebar do not have a complete mobile breakpoint strategy.
+
+Important frontend files:
+
+client/src/App.tsx
+client/src/pages/Home.tsx
+client/src/components/Header.tsx
+client/src/components/TextBox.tsx
+client/src/components/LeftSidebar.tsx
+client/src/components/CustomInstructions.tsx
+client/src/components/ChatInterface.tsx
+client/src/components/ChunkSelectionModal.tsx
+client/src/components/DownloadModal.tsx
+client/src/components/ApiKeyManager.tsx
+client/src/index.css
+client/src/lib/instructionPresets.ts
+client/src/lib/queryClient.ts
+
+
+3. PRIMARY USER FLOW
+
+Step 1:
+
+The user types or uploads source prose into Box A.
+
+Step 2:
+
+The client sends the text to POST /api/analyze-text or uses the upload response. The server asks GPTZero for an AI score and creates chunks for text longer than 500 words.
+
+Step 3:
+
+The user may choose chunks, select one or more instruction presets, select a stored writing sample, paste a custom style sample into Box B, add a content reference to Box C, or enter custom instructions.
+
+Step 4:
+
+The user selects Zhi 1 through Zhi 5 and presses Humanize.
+
+Step 5:
+
+The client sends a RewriteRequest to POST /api/rewrite.
+
+Step 6:
+
+The server scores the source with GPTZero when the source is between 1 and 150,000 characters.
+
+Step 7:
+
+The server creates a rewrite job with processing status.
+
+Step 8:
+
+The AI provider service constructs one rewrite prompt and calls the selected provider.
+
+Step 9:
+
+The server removes Markdown-like markup from the returned text.
+
+Step 10:
+
+The server scores the output with GPTZero when the output is between 1 and 150,000 characters.
+
+Step 11:
+
+The server stores the output, output score, and completed status.
+
+Step 12:
+
+The client places the output into Box D and displays the score.
+
+Step 13:
+
+The user can re-rewrite the previous output, copy it, or download it.
+
+
+4. FRONTEND STATE
+
+The Home page currently owns most application state:
+
+provider
+inputText
+styleText
+outputText
+customInstructions
+selectedPresets
+selectedStyleSample
+showApiKeyManager
+contentMixText
+mixingMode
+inputAiScore
+styleAiScore
+outputAiScore
+inputChunks
+selectedChunkIds
+showChunkModal
+showDownloadModal
+lastJobId
+sidebarWidth
+
+This state is not represented by a single validated form model. Most values are passed through component props.
+
+TanStack React Query is used for:
+
+1. Writing-sample retrieval.
+2. Authentication-user retrieval.
+3. Mutations for analysis, rewriting, and re-rewriting.
+
+The chat panel maintains its own messages, input, selected provider, and loading state.
+
+
+5. SERVER ARCHITECTURE
+
+Technology:
+
+Node.js
+Express
+TypeScript
+Drizzle ORM
+PostgreSQL hosted by Neon
+Multer for uploads
+Passport.js for Google OAuth
+PostgreSQL-backed Express sessions
+
+Development command:
+
+npm run dev
+
+This executes:
+
+NODE_ENV=development tsx server/index.ts
+
+Production build:
+
+npm run build
+
+This executes a Vite client build followed by an esbuild server bundle.
+
+Production command:
+
+npm start
+
+The server binds to 0.0.0.0 and uses PORT, defaulting to 5000.
+
+Main server files:
+
+server/index.ts
+server/routes.ts
+server/auth.ts
+server/storage.ts
+server/db.ts
+server/vite.ts
+
+Service files:
+
+server/services/aiProviders.ts
+server/services/gptZero.ts
+server/services/textChunker.ts
+server/services/fileProcessor.ts
+server/services/documentGenerator.ts
+
+
+6. API SURFACE
+
+POST /api/upload
+
+Accepts one multipart file under the field name file.
+Maximum file size is 50 megabytes.
+Validates and extracts text.
+Stores a document record.
+Requests a GPTZero score.
+Creates 500-word chunks when needed.
+Requests GPTZero scores for every chunk.
+Returns the document, chunks, overall score, and needsChunking flag.
+
+POST /api/analyze-text
+
+Body includes text.
+Returns aiScore, wordCount, chunks, and needsChunking.
+
+POST /api/rewrite
+
+Body follows RewriteRequest.
+Requires inputText and provider.
+Creates a rewrite job.
+Calls the selected AI provider.
+Cleans markup.
+Scores the output.
+Stores the completed result.
+Returns rewrittenText, inputAiScore, outputAiScore, and jobId.
+
+POST /api/re-rewrite/:jobId
+
+Retrieves the previous completed job.
+Uses the previous output as the new input.
+Retains the original style sample, content reference, and mixing mode.
+Allows current custom instructions, presets, or provider to override stored values.
+Creates a new job and returns the new rewrite and score.
+
+POST /api/set-keys
+
+Accepts provider-key values and writes them into process.env at runtime.
+This endpoint is currently not protected, does not persist values, and should be treated as a security risk.
+
+POST /api/download/:format
+
+Supported formats are pdf, docx, and txt.
+Accepts content and an optional filename.
+Returns a generated file.
+
+POST /api/chat
+
+Sends chat messages to a selected provider with optional application context.
+
+POST /api/writing-samples/upload
+
+Accepts a writing-sample file and stores its extracted text.
+
+GET /api/writing-samples
+
+Returns stored writing samples.
+
+POST /api/admin/import-writing-samples
+
+Bulk-imports writing samples from the project writing_samples directory.
+The route name says admin, but authorization should be verified before relying on that label.
+
+GET /api/auth/google
+
+Begins direct Google OAuth.
+
+GET /auth/google
+
+Alias for beginning direct Google OAuth.
+
+GET /auth/google/callback
+
+Primary Google OAuth callback.
+
+GET /api/auth/google/callback
+
+Alias for the Google OAuth callback.
+
+GET /api/auth/user
+
+Returns the current authentication state and user.
+
+GET /api/auth/me
+
+Returns the current user identity.
+
+POST /api/auth/logout
+
+Logs the user out and destroys the session.
+
+GET /api/admin/visits
+
+Returns visit analytics and is protected by the isAdmin middleware.
+
+
+7. DATABASE MODEL
+
+The database is PostgreSQL accessed through Drizzle ORM.
+
+Runtime database environment variable:
+
+NEON_DATABASE_URL
+
+Drizzle command-line configuration currently expects:
+
+DATABASE_URL
+
+This mismatch can cause schema-management failures even when the running application connects successfully.
+
+users table:
+
+id
+username
+google_id
+email
+display_name
+created_at
+
+visits table:
+
+id
+user_id
+email
+visited_at
+
+writing_samples table:
+
+id
+label
+content
+word_count
+created_at
+
+documents table:
+
+id
+filename
+content
+word_count
+ai_score
+created_at
+
+rewrite_jobs table:
+
+id
+input_text
+style_text
+content_mix_text
+custom_instructions
+selected_presets
+provider
+chunks
+selected_chunk_ids
+mixing_mode
+output_text
+input_ai_score
+output_ai_score
+status
+created_at
+
+Current ownership limitation:
+
+Documents, writing samples, and rewrite jobs do not have a userId column. They are not currently partitioned by account.
+
+
+8. AUTHENTICATION
+
+Authentication uses Passport.js with passport-google-oauth20.
+
+Sessions use express-session and connect-pg-simple.
+
+The production domain is:
+
+https://gptbypass.ink
+
+The production OAuth callback is:
+
+https://gptbypass.ink/auth/google/callback
+
+The application also supports a Replit development-domain callback.
+
+Authentication-related environment names include:
+
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+SESSION_SECRET
+
+No secret values are included in this document.
+
+The application allows anonymous viewing and use. Google login is available but is not an entry wall.
+
+Do not replace this authentication system when tuning unrelated features.
+
+
+9. AI PROVIDERS
+
+Supported internal provider values:
+
+openai
+anthropic
+deepseek
+perplexity
+venice
+
+Current named defaults visible in the code:
+
+OpenAI: gpt-4o
+Anthropic: claude-sonnet-5
+Perplexity: llama-3.1-sonar-small-128k-online
+Venice: llama-3.3-70b
+
+DeepSeek is implemented through its own provider path in the AI provider service.
+
+Provider key environment names include:
+
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+DEEPSEEK_API_KEY
+PERPLEXITY_API_KEY
+VENICE_API_KEY
+GPTZERO_API_KEY
+
+Some provider constructors and requests currently fall back to the literal string default_key when a key is absent. This should fail explicitly instead.
+
+All providers receive substantially the same prompt.
+
+OpenAI uses a temperature of 0.7 and a maximum of 4,000 output tokens.
+
+Other providers use similar fixed generation settings.
+
+The application currently does not store the actual fallback provider used as a separate job field.
+
+
+10. CURRENT REWRITE PROMPT
+
+The prompt-building sequence is:
+
+1. Tell the model to rewrite the source so its style matches the supplied style sample at a granular level.
+2. If Box B is empty, substitute a hardcoded default style sample based on a Raven Paradox essay.
+3. If Box C has content, tell the model to judiciously integrate relevant ideas, examples, and details from that content reference.
+4. Expand selected presets into additional rewrite instructions.
+5. Append custom instructions.
+6. Append the source under Text to rewrite.
+
+The current prompt does not use a separate system message for rewriting.
+
+The source text, style sample, content reference, and instructions are interpolated directly into one user prompt.
+
+The mixingMode value is accepted and stored, but the core prompt primarily decides behavior from whether styleText and contentMixText are present.
+
+The default style sample is long and consumes a significant part of the context window.
+
+The prompt does not currently require an explicit semantic-preservation check, fact lock, quotation lock, citation lock, or named-entity comparison after generation.
+
+
+11. INSTRUCTION PRESETS
+
+The server contains a PRESET_TEXT registry.
+
+Examples include:
+
+Mixed cadence
+Clause surgery
+Front-load claim
+Back-load claim
+Imply one step
+Conditional framing
+Scope check
+Deflate jargon
+Kill stock transitions
+Low-heat voice
+Concrete benchmark
+Cull repeats
+No lists
+No meta
+Exact nouns
+Claim lock
+Entity lock
+
+The server also defines combination presets such as Lean and Sharp and Analytic.
+
+Current defect:
+
+The server registry contains duplicate object keys for:
+
+One aside
+Asymmetric emphasis
+Topic snap
+
+JavaScript silently keeps the later definition. The build reports warnings for these duplicates.
+
+More important defect:
+
+The client preset registry and server preset registry do not consistently use the same identifiers. Unknown selections are silently ignored by the server. This means the interface can show a preset as selected even though it contributes no instruction to the model.
+
+Fine-tuning recommendations should prioritize one shared, validated preset registry used by both client and server.
+
+
+12. STYLE SAMPLE AND CONTENT REFERENCE
+
+Box B supplies prose whose style should be imitated.
+
+Box C supplies ideas, examples, or details to blend into the rewrite.
+
+The left sidebar loads stored writing samples from the database.
+
+A selected writing sample can populate the style flow.
+
+Long stored samples expose beginning, middle, and ending excerpts.
+
+Risk:
+
+Sending very long style samples and content references can consume the model context, reduce instruction adherence, and increase latency and cost.
+
+Potential tuning direction:
+
+Create a style-profile extraction stage that converts a long sample into a compact, structured style representation before rewriting. The profile could represent sentence-length distribution, clause structure, transition habits, lexical register, hedging, emphasis, paragraph shape, parentheticals, rhetorical patterns, and recurring disfluencies. The rewrite stage would consume the compact profile rather than the entire sample.
+
+Any such extraction must preserve the current ability to use the original sample and should be evaluated against direct full-sample prompting.
+
+
+13. GPTZERO INTEGRATION
+
+GPTZero is used to score:
+
+1. Uploaded source text.
+2. Pasted source text.
+3. Long-text chunks.
+4. Rewritten output.
+5. Re-rewritten output.
+
+The server avoids GPTZero scoring outside the 1-to-150,000-character range for rewrite requests.
+
+Current risk:
+
+Batch chunk analysis uses parallel requests without an explicit concurrency limit. Large inputs can create a burst of GPTZero requests.
+
+Current product limitation:
+
+GPTZero is the only automated evaluator. There is no independent measurement of:
+
+1. Meaning preservation.
+2. Factual consistency.
+3. Named-entity preservation.
+4. Citation preservation.
+5. Writing quality.
+6. Style similarity.
+7. Grammar.
+8. Plagiarism or overly close imitation.
+
+A lower detector score alone is not enough to establish a better rewrite.
+
+
+14. LONG-DOCUMENT PROCESSING
+
+The chunker uses:
+
+500 words per chunk.
+50 words of overlap.
+
+Chunks receive IDs, start and end word positions, and optional GPTZero scores.
+
+The interface lets the user choose chunks.
+
+Critical current limitation:
+
+The normal rewrite endpoint does not independently rewrite each selected chunk and reassemble the document. The client concatenates selected chunk contents and sends them as a single rewrite input. Overlapping text can therefore be duplicated.
+
+The rewrite job stores selectedChunkIds, but chunks are currently stored as an empty array in the normal and re-rewrite routes.
+
+The current behavior does not implement a complete long-document continuity system.
+
+Recommended tuning problem:
+
+Design an ordered chunk pipeline that:
+
+1. Splits at paragraph and sentence boundaries rather than only word counts.
+2. Uses controlled context overlap without duplicating final text.
+3. Creates a document-level style and fact ledger.
+4. Rewrites chunks sequentially or with bounded parallelism.
+5. Preserves names, claims, quotations, citations, numbering, and cross-references.
+6. Reassembles text deterministically.
+7. Runs a final continuity and duplication check.
+8. Exposes progress and partial failure clearly.
+
+
+15. RE-REWRITE BEHAVIOR
+
+Re-rewrite uses the previous output as its new input.
+
+It inherits:
+
+styleText
+contentMixText
+mixingMode
+stored custom instructions unless overridden
+stored presets unless overridden
+stored provider unless overridden
+
+It creates a new rewrite job and obtains another GPTZero score.
+
+There is no automatic loop, target score, maximum attempt policy, semantic drift check, or quality comparison between attempts.
+
+Potential tuning direction:
+
+Treat re-rewrite as a controlled optimization step. Compare meaning, factual integrity, style similarity, and readability before accepting a later attempt. Never optimize detector score alone.
+
+
+16. FILE PROCESSING
+
+The general upload route allows files up to 50 megabytes.
+
+The server file processor supports text extraction from:
+
+TXT
+DOC
+DOCX
+
+Important inconsistency:
+
+The Box A file picker advertises PDF support, and separate PDF-related code exists, but the general server file processor explicitly rejects PDF. The user can therefore see PDF as an accepted format while the main backend route does not support it consistently.
+
+The client also has specialized Box A upload logic that may perform client-side PDF extraction. The client and server upload paths should be documented and unified.
+
+Download formats:
+
+TXT
+DOCX
+PDF
+
+
+17. WRITING-SAMPLE INGESTION
+
+Writing samples are stored in PostgreSQL.
+
+The server also watches the local writing_samples directory for new TXT files.
+
+Writing samples can be uploaded through the API and bulk imported from the watched directory.
+
+Risks:
+
+1. Duplicate ingestion behavior should be defined.
+2. File-system watching may behave differently between development and production.
+3. Stored writing samples are global rather than account-owned.
+4. There is no visible provenance, consent, licensing, or deletion workflow in the schema.
+
+
+18. CHAT INTERFACE
+
+The chat panel is separate from the primary rewrite workflow.
+
+It maintains an independent provider selection rather than automatically sharing the main provider state.
+
+It can receive application context and send returned content to Input, Style, Content, or Output boxes.
+
+Tuning question:
+
+Decide whether chat is a supporting editor for the rewrite workflow or a separate general assistant. Its purpose should be made explicit before changing prompts or provider behavior.
+
+
+19. CURRENT ERROR HANDLING
+
+Most server routes use try and catch and return status 500 with error.message.
+
+Most client mutations display toast notifications.
+
+Rewrite jobs are marked failed when provider calls fail.
+
+Current weaknesses:
+
+1. No consistent typed error envelope.
+2. No request ID visible to the user.
+3. No provider timeout policy described at the route level.
+4. No exponential retry or circuit-breaker behavior.
+5. No per-provider health status.
+6. No explicit distinction between configuration, quota, timeout, validation, provider, detector, and database errors.
+7. Error messages may expose low-level provider details.
+
+
+20. SECURITY AND PRIVACY RISKS
+
+Highest priority:
+
+POST /api/set-keys is unprotected and mutates server environment variables at runtime.
+
+Other issues to investigate:
+
+1. Confirm that every administrative route uses authorization middleware.
+2. Add strict request validation with Zod to all mutation routes.
+3. Add rate limiting to rewrite, analysis, upload, chat, login, and import routes.
+4. Add CSRF protection or equivalent same-site controls for state-changing authenticated routes.
+5. Validate filenames and generated download names.
+6. Define retention and deletion policies for source text, outputs, uploads, emails, and visit records.
+7. Avoid logging full user text or credentials.
+8. Fail explicitly when provider secrets are absent; never use default_key.
+9. Define account ownership before exposing rewrite history.
+10. Review the 50-megabyte request and upload limits for denial-of-service risk.
+
+
+21. TESTING STATUS
+
+The package scripts include a TypeScript check but no dedicated test script.
+
+No application test suite is evident in the current source tree.
+
+The production build currently completes with three duplicate-key warnings from the preset registry.
+
+Recommended minimum test layers:
+
+1. Prompt snapshot tests.
+2. Shared preset-registry tests.
+3. RewriteRequest validation tests.
+4. Provider response normalization tests.
+5. Meaning-preservation regression tests.
+6. Named-entity and quotation-preservation tests.
+7. Long-document chunk and reassembly tests.
+8. Upload-format tests.
+9. Authentication and authorization tests.
+10. Rate-limit and error-envelope tests.
+11. Critical browser-flow tests for anonymous rewriting, Google login, Humanize, re-rewrite, and downloads.
+
+
+22. OBSERVABILITY
+
+The server currently logs provider calls and prompt lengths.
+
+Recommended measurements:
+
+1. Provider requested.
+2. Provider actually used.
+3. Model used.
+4. Prompt and completion token counts.
+5. Rewrite latency.
+6. GPTZero latency and status.
+7. Input and output character counts.
+8. Input and output detector scores.
+9. Meaning-preservation score.
+10. Style-similarity score.
+11. Re-rewrite count.
+12. Error category.
+13. Upload type and processing time.
+
+Do not log full private source or output text by default.
+
+
+23. HIGHEST-PRIORITY TUNING QUESTIONS FOR GROK
+
+Please analyze the current application and answer these questions in order.
+
+Question 1:
+
+How should the rewrite prompt be redesigned so it preserves every claim, name, quotation, number, citation, logical relationship, and qualification while producing prose that feels organic rather than template-driven?
+
+Question 2:
+
+Should the system continue sending the full style sample, or should it first extract a compact style profile? Propose both designs and an evaluation method.
+
+Question 3:
+
+How should the system distinguish style imitation from content copying so it captures structural habits without reproducing distinctive phrases?
+
+Question 4:
+
+How should presets be represented as one shared typed registry so every visible selection is guaranteed to reach the model?
+
+Question 5:
+
+How should contradictory presets and custom instructions be detected and resolved?
+
+Question 6:
+
+How should GPT Bypass measure quality independently of GPTZero?
+
+Question 7:
+
+Design a multi-objective evaluation score that includes:
+
+semantic fidelity
+factual fidelity
+entity preservation
+quotation and citation preservation
+style similarity
+readability
+grammar
+detector score
+
+Question 8:
+
+How should the long-document pipeline rewrite and reassemble documents without duplicated overlap, inconsistent terminology, or semantic drift?
+
+Question 9:
+
+How should provider selection work? Compare fixed user selection, automatic routing, fallback routing, and best-of-N generation.
+
+Question 10:
+
+How should re-rewrite work as a bounded, quality-controlled process rather than an unlimited detector-score loop?
+
+Question 11:
+
+Which generation parameters should be provider-specific instead of globally approximated?
+
+Question 12:
+
+How should prompt injection from source text, style samples, content references, and uploaded documents be mitigated?
+
+Question 13:
+
+Which current security risks must be fixed before broader public use?
+
+Question 14:
+
+How should the desktop interface become responsive without redesigning the existing desktop experience?
+
+Question 15:
+
+What staged implementation plan produces the largest improvement in output quality with the smallest risk to working functionality?
+
+
+24. REQUESTED FORMAT FOR GROK'S RESPONSE
+
+Please return:
+
+1. A concise diagnosis of the current system.
+2. A ranked list of defects by severity.
+3. A proposed target architecture.
+4. A rewritten prompt architecture.
+5. A style-profile schema.
+6. A quality-evaluation framework.
+7. A long-document processing design.
+8. A provider-routing and retry policy.
+9. A security remediation list.
+10. A testing plan.
+11. A phased implementation plan.
+12. For each proposed change, identify the exact current file or subsystem affected.
+13. Clearly label recommendations that change behavior versus recommendations that only improve reliability.
+14. Do not recommend replacing working systems merely because another library is more fashionable.
+
+
+25. ONE-PARAGRAPH ARCHITECTURE SUMMARY
+
+GPT Bypass is a React and TypeScript single-page application served by an Express and TypeScript backend. The browser manages four text areas, presets, writing samples, chunk selection, scores, provider choice, downloads, chat, and Google sign-in. The server stores documents, writing samples, rewrite jobs, users, and visits in Neon PostgreSQL through Drizzle ORM. A rewrite request is scored by GPTZero, converted into one provider prompt containing a style sample, optional content reference, presets, custom instructions, and source text, sent to one of five AI providers, cleaned, scored again by GPTZero, stored, and returned to the browser. The most important tuning opportunities are to unify the preset registry, create explicit semantic and factual safeguards, develop a compact style-profile stage, implement real long-document rewrite and reassembly, add quality measurements beyond GPTZero, secure the runtime key endpoint, normalize provider errors and fallback behavior, and add regression tests before changing the working user flow.

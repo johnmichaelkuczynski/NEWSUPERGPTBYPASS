@@ -74,3 +74,17 @@ mtime_ms = 1789622080974
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:766f20a1-70ec-4e77-a66b-de17fecfdbdf/1547ca7a-508a-4bfb-b27a-02d28fd950ce/0e42da94-1d7e-4411-a1b9-7becd14a7459"
 storage_version_token = "1789622100994405"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "bVpJLAbSubhqfb9ZXTMzL"
+uri = "file://output/gptbypass_app_blueprint.txt"
+type = "text"
+title = "GPT Bypass Application Blueprint"
+description = "A 25-section, Grok-ready technical blueprint of the current application, its rewrite pipeline, known risks, and tuning questions."
+logical_id = "a0c8608b-0782-4f52-b397-5c0782a4baf1"
+content_hash = "sha256:0e86a8a2c88618c3b5f225a75ba90495be92c4aa2151f44e69a1e48e365b0cc4"
+size = 26711
+mtime_ms = 1789630392464
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:766f20a1-70ec-4e77-a66b-de17fecfdbdf/a0c8608b-0782-4f52-b397-5c0782a4baf1/b1241a51-3282-4fa1-bada-61c22405729f"
+storage_version_token = "1789630408741152"
+content_type = "text/plain"
