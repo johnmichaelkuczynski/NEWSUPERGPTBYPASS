@@ -102,12 +102,6 @@ function buildRewritePrompt(params: {
   customInstructions?: string;
   fidelityCorrections?: ClaimAuditResult;
 }): string {
-  const inputWordCount = params.inputText.trim().split(/\s+/).filter(Boolean).length;
-  const minimumOutputWords = Math.max(1, Math.floor(inputWordCount * 0.85));
-  const maximumOutputWords = Math.max(minimumOutputWords, Math.ceil(inputWordCount * 1.2));
-  const cadenceInstruction = inputWordCount >= 80
-    ? "Use visibly uneven cadence: include at least one very short sentence or fragment, combine some neighboring claims into a longer sentence, and vary how sentences begin. Do not repeat the source's sentence sequence mechanically."
-    : "Vary the sentence structure and cadence without adding words merely to create length.";
   const hasStyle = !!(params.styleText && params.styleText.trim() !== "");
   const hasContent = !!(params.contentMixText && params.contentMixText.trim() !== "");
   const styleSample = hasStyle ? params.styleText! : `DEFAULT STYLE SAMPLE (The Raven Paradox):
@@ -122,15 +116,11 @@ which, though logically equivalent, seem to confirmationally equivalent, in that
 A number of very contrived solutions to this paradox have been proposed, all of which either deny that there is a paradox or invent ad hoc systems of logic to validate the 'solution' in question. 
 But the real solution is clear. First of all, it is only principled generalizations that can be confirmed. Supposing that you assert (i) with the intention of affirming a principled as opposed to an accidental generalization, you are saying that instances of the property of being a raven grounds or causes instances of blackness. Read thus, (i) is most certainly not equivalent with (ii) or with any variation thereof. Be it noted that while there is a natural nomic or causal reading of (i), there is no such reading of (ii). Also be it noted that it is only principled as opposed to accidental generalizations that can be confirmed. "All metal expands when heated" can be confirmed but not "all objects in Smith's pocket expand when heated." In general, when read as principled and therefore confirmable generalization, "all x's are y's" has nomic or causal content is therefore not equivalent with "all non-y's are non-x's." Case closed on the Raven Paradox.`;
 
-  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following master narrative excerpt. Keep copying the excerpt's sentence structure, rhythm, parenthetical glosses, transitions, paragraph shape, and sentence-length variation when those structures can express the source content faithfully:\n"${styleSample}"\n\n`;
+  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following book passage. Keep copying the passage's sentence structure, rhythm, parenthetical glosses, transitions, paragraph shape, and sentence-length variation when those structures can express the source content faithfully:\n"${styleSample}"\n\n`;
 
-  prompt += `The master narrative excerpt supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over the excerpt's plot, characters, setting, arguments, logical forms, claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in the excerpt has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
+  prompt += `Box B supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over Box B's plot, characters, setting, arguments, claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in Box B has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
 
-  prompt += `Keep the output approximately the same length as Box A: ${minimumOutputWords}-${maximumOutputWords} words. Begin directly with Box A's content. Do not add attention-getters, announcements, framing language, or introductory commands. Do not put the output in quotation marks unless Box A is quoted. Do not turn expository source text into a scene or story. Do not invent a narrator, character, location, action, dialogue, quotation, sensory detail, motive, emotion, metaphor, prediction, or background fact. Use the excerpt's prose mechanics only.\n\n`;
-
-  prompt += `This must be a genuine rewrite, not a lightly edited copy. Rebuild every sentence rather than swapping a few synonyms. Do not retain any source phrase longer than eight words unless it is a name, quotation, technical term, or wording that cannot be changed without changing the claim. Reorder clauses and redistribute claims across sentences where meaning permits. ${cadenceInstruction} Avoid the polished stock progression common to generic AI prose: uniform sentence lengths, repeated subject-first declarations, tidy three-part summaries, and smooth transition words at every turn.\n\n`;
-
-  prompt += `Do not copy numbering, labels, chapter markers, footnote markers, asterisks or cross-references unless the same markers appear in Box A.\n\n`;
+  prompt += `Do not copy numbering, example labels, chapter markers, footnote markers, asterisks or cross-references unless the same markers appear in Box A.\n\n`;
 
   if (hasContent) {
     prompt += `Use the following content reference only to clarify the wording of claims already present in Box A. It must not contribute any new claim, example, argument, condition, or generalization:\n"${params.contentMixText}"\n\n`;
