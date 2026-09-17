@@ -25,9 +25,11 @@ interface MeaningComparisonModalProps {
   result: MeaningComparison | null;
   isOpen: boolean;
   onClose: () => void;
+  onFix: () => void;
+  isFixing: boolean;
 }
 
-export default function MeaningComparisonModal({ result, isOpen, onClose }: MeaningComparisonModalProps) {
+export default function MeaningComparisonModal({ result, isOpen, onClose, onFix, isFixing }: MeaningComparisonModalProps) {
   if (!result) return null;
 
   return (
@@ -72,6 +74,12 @@ export default function MeaningComparisonModal({ result, isOpen, onClose }: Mean
         )}
 
         <DialogFooter>
+          {!result.sameMeaning && (
+            <Button onClick={onFix} disabled={isFixing}>
+              <i className="fas fa-wand-magic-sparkles mr-2"></i>
+              {isFixing ? "Fixing Output..." : "Fix Output"}
+            </Button>
+          )}
           <Button onClick={onClose}>Close</Button>
         </DialogFooter>
       </DialogContent>

@@ -115,10 +115,32 @@ which, though logically equivalent, seem to confirmationally equivalent, in that
 A number of very contrived solutions to this paradox have been proposed, all of which either deny that there is a paradox or invent ad hoc systems of logic to validate the 'solution' in question. 
 But the real solution is clear. First of all, it is only principled generalizations that can be confirmed. Supposing that you assert (i) with the intention of affirming a principled as opposed to an accidental generalization, you are saying that instances of the property of being a raven grounds or causes instances of blackness. Read thus, (i) is most certainly not equivalent with (ii) or with any variation thereof. Be it noted that while there is a natural nomic or causal reading of (i), there is no such reading of (ii). Also be it noted that it is only principled as opposed to accidental generalizations that can be confirmed. "All metal expands when heated" can be confirmed but not "all objects in Smith's pocket expand when heated." In general, when read as principled and therefore confirmable generalization, "all x's are y's" has nomic or causal content is therefore not equivalent with "all non-y's are non-x's." Case closed on the Raven Paradox.`;
 
-  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following style sample:\n"${styleSample}"\n\n`;
+  const sourceWordCount = params.inputText.trim().split(/\s+/).filter(Boolean).length;
+  const sourceSentenceCount = (params.inputText.match(/[.!?]+(?:\s|$)/g) || []).length || 1;
+  const minimumWords = Math.max(1, Math.floor(sourceWordCount * 0.8));
+  const maximumWords = Math.max(minimumWords, Math.ceil(sourceWordCount * 1.2));
+
+  let prompt = `Perform a style-only graft. First study the ENTIRE style sample holistically—not merely its opening or a same-length excerpt. Infer its recurring sentence architecture, clause movement, cadence, transitions, paragraph development, lexical register, rhetorical habits, qualification patterns, emphasis patterns, and characteristic irregularities. Then graft only the INPUT's meaning onto that global style.
+
+When the input and style sample have different lengths, compress the style sample's recurring patterns proportionally into an output the size of the input. Do not reproduce the style sample's document-length structure. A sentence-by-sentence substitution is appropriate only in the exceptional case where the two texts naturally have the same length and corresponding structure.
+
+ENTIRE STYLE SAMPLE:
+"${styleSample}"
+
+NON-NEGOTIABLE FIDELITY AND LENGTH RULES:
+- Preserve every claim, fact, entity, number, qualification, causal relationship, logical relationship, and conclusion in the source.
+- Use the style sample only to learn HOW to write, never WHAT to say.
+- Never copy or adapt the style sample's title, chapter heading, section heading, numbering, subject matter, claims, arguments, examples, quotations, names, specialized terminology, or conclusions.
+- Do not introduce a new topic, argument, section, chapter, theory, doctrine, label, or extended example.
+- Do not emit labels such as "Chapter," "Section," or numbered headings unless they already occur in the input.
+- Keep approximately the same number of sentences as the source (${sourceSentenceCount} sentences).
+- Keep the rewrite between ${minimumWords} and ${maximumWords} words. The source contains ${sourceWordCount} words.
+- Return only the rewritten passage.
+
+`;
 
   if (hasContent) {
-    prompt += `Judiciously integrate relevant ideas, examples, and details from the following content reference to enrich the rewrite:\n"${params.contentMixText}"\n\n`;
+    prompt += `The following content reference may supply a brief relevant detail only when it supports an existing source claim. It must never replace the source topic, dominate the rewrite, or cause the rewrite to exceed the required length:\n"${params.contentMixText}"\n\n`;
   }
 
   // <<< PRESETS/APPLIED INSTRUCTIONS HERE >>>
@@ -411,6 +433,43 @@ ${outputText}`;
         severity: difference.severity === 'material' ? 'material' : 'minor',
       })) : [],
     };
+  }
+
+  async repairMeaning(
+    provider: string,
+    inputText: string,
+    outputText: string,
+    differences?: MeaningComparison['differences'],
+  ): Promise<string> {
+    const sourceWordCount = inputText.trim().split(/\s+/).filter(Boolean).length;
+    const sourceSentenceCount = (inputText.match(/[.!?]+(?:\s|$)/g) || []).length || 1;
+    const minimumWords = Math.max(1, Math.floor(sourceWordCount * 0.8));
+    const maximumWords = Math.max(minimumWords, Math.ceil(sourceWordCount * 1.2));
+    const differenceText = differences?.length
+      ? JSON.stringify(differences)
+      : "The output has failed the required meaning or length constraints.";
+
+    const prompt = `Repair OUTPUT so it expresses the same meaning as INPUT.
+
+Requirements:
+- Preserve every claim, fact, entity, number, qualification, causal relationship, logical relationship, and conclusion from INPUT.
+- Remove every unsupported addition and restore every omission.
+- Resolve every contradiction listed in the comparison findings.
+- Keep approximately ${sourceSentenceCount} sentences.
+- Keep the repaired output between ${minimumWords} and ${maximumWords} words. INPUT contains ${sourceWordCount} words.
+- Preserve the useful wording and style of OUTPUT only where it does not conflict with these requirements.
+- Return only the repaired passage, with no explanation, heading, or Markdown.
+
+COMPARISON FINDINGS:
+${differenceText}
+
+INPUT:
+${inputText}
+
+OUTPUT TO REPAIR:
+${outputText}`;
+
+    return this.rewrite(provider, { inputText, rawPrompt: prompt });
   }
 }
 

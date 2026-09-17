@@ -298,7 +298,7 @@ export default function LeftSidebar({
                     </div>
                     <div className="text-xs text-gray-400">
                       {totalWords.toLocaleString()} words total
-                      {isLong && ` · using ~${excerptWords} word excerpt`}
+                      {isLong && ` · previewing ~${excerptWords} words`}
                     </div>
                   </div>
                   <button
@@ -346,9 +346,10 @@ export default function LeftSidebar({
                     size="sm"
                     variant="outline"
                     className="flex-1 text-xs h-8"
-                    onClick={() => onStyleSampleSelect(excerpt)}
+                    onClick={() => onStyleSampleSelect(selectedSample.content)}
+                    title="Uses the entire writing sample as the style model"
                   >
-                    → Style Box (B)
+                    → Whole Sample to Style (B)
                   </Button>
                   <Button
                     size="sm"

@@ -152,6 +152,30 @@ export default function Home() {
     },
   });
 
+  const fixMeaningMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/fix-meaning", {
+        method: "POST",
+        body: {
+          inputText,
+          outputText,
+          provider,
+          differences: meaningComparison?.differences,
+          jobId: lastJobId,
+        },
+      }) as { fixedText: string; outputAiScore: number | null; comparison: MeaningComparison };
+    },
+    onSuccess: (data) => {
+      setOutputText(data.fixedText);
+      setOutputAiScore(data.outputAiScore);
+      setMeaningComparison(data.comparison);
+      toast({ title: "Output Corrected", description: "The corrected output passed meaning and length verification." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Correction Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleInputTextChange = (text: string) => {
     setInputText(text);
     if (text.trim()) {
@@ -434,6 +458,8 @@ export default function Home() {
         result={meaningComparison}
         isOpen={showMeaningComparison}
         onClose={() => setShowMeaningComparison(false)}
+        onFix={() => fixMeaningMutation.mutate()}
+        isFixing={fixMeaningMutation.isPending}
       />
     </div>
   );

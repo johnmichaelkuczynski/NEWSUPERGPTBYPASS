@@ -33,6 +33,43 @@ function cleanMarkup(text: string): string {
     .trim();
 }
 
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function hasExtremeLengthDrift(inputText: string, outputText: string): boolean {
+  const inputWords = wordCount(inputText);
+  if (inputWords === 0) return false;
+  const ratio = wordCount(outputText) / inputWords;
+  return ratio < 0.6 || ratio > 1.5;
+}
+
+async function enforceMeaningAndLength(
+  provider: string,
+  inputText: string,
+  proposedOutput: string,
+): Promise<string> {
+  let output = cleanMarkup(proposedOutput);
+  let comparison = await aiProviderService.compareMeaning(provider, inputText, output);
+
+  if (hasExtremeLengthDrift(inputText, output) || !comparison.sameMeaning) {
+    console.warn("Rewrite failed automatic meaning or length validation; repairing output.");
+    output = cleanMarkup(await aiProviderService.repairMeaning(
+      provider,
+      inputText,
+      output,
+      comparison.differences,
+    ));
+    comparison = await aiProviderService.compareMeaning(provider, inputText, output);
+  }
+
+  if (hasExtremeLengthDrift(inputText, output) || !comparison.sameMeaning) {
+    throw new Error("The rewrite did not pass automatic meaning and length verification");
+  }
+
+  return output;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
@@ -130,6 +167,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/fix-meaning", async (req, res) => {
+    try {
+      const { inputText, outputText, provider, differences, jobId } = req.body;
+      if (!inputText || typeof inputText !== 'string' || !outputText || typeof outputText !== 'string') {
+        return res.status(400).json({ message: "Both input and output text are required" });
+      }
+      if (!provider || !['openai', 'anthropic', 'deepseek', 'perplexity', 'venice'].includes(provider)) {
+        return res.status(400).json({ message: "A valid provider is required" });
+      }
+
+      const fixedText = cleanMarkup(await aiProviderService.repairMeaning(
+        provider,
+        inputText,
+        outputText,
+        Array.isArray(differences) ? differences : undefined,
+      ));
+      const verification = await aiProviderService.compareMeaning(provider, inputText, fixedText);
+      if (!verification.sameMeaning || hasExtremeLengthDrift(inputText, fixedText)) {
+        return res.status(422).json({
+          message: "The proposed correction did not pass meaning and length verification. The original output was left unchanged.",
+          verification,
+        });
+      }
+
+      const outputAnalysis = fixedText.length <= 150000
+        ? await gptZeroService.analyzeText(fixedText)
+        : { aiScore: null };
+      if (jobId && typeof jobId === 'string') {
+        await storage.updateRewriteJob(jobId, {
+          outputText: fixedText,
+          outputAiScore: outputAnalysis.aiScore,
+        });
+      }
+
+      res.json({ fixedText, outputAiScore: outputAnalysis.aiScore, comparison: verification });
+    } catch (error: any) {
+      console.error('Meaning repair error:', error);
+      res.status(500).json({ message: error.message || "Meaning repair failed" });
+    }
+  });
+
   // Rewrite text endpoint
   app.post("/api/rewrite", async (req, res) => {
     try {
@@ -167,7 +245,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mixingMode: rewriteRequest.mixingMode,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const cleanedRewrittenText = await enforceMeaningAndLength(
+          rewriteRequest.provider,
+          rewriteRequest.inputText,
+          rewrittenText,
+        );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
@@ -230,7 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mixingMode: originalJob.mixingMode,
         });
 
-        const cleanedRewrittenText = cleanMarkup(rewrittenText);
+        const cleanedRewrittenText = await enforceMeaningAndLength(
+          provider || originalJob.provider,
+          originalJob.outputText,
+          rewrittenText,
+        );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
           : { aiScore: null };
