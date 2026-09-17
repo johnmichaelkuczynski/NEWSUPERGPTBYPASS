@@ -88,6 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const gptZeroResult = await gptZeroService.analyzeText(text);
+      const styleExcerpt = getMasterStyleExcerpt(text);
       const wordCount = text.trim().split(/\s+/).length;
       const chunks = wordCount > 500 ? textChunkerService.chunkText(text) : [];
 
@@ -104,6 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wordCount,
         chunks,
         needsChunking: wordCount > 500,
+        styleExcerpt,
       });
     } catch (error: any) {
       console.error('Text analysis error:', error);

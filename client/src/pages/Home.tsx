@@ -70,6 +70,7 @@ export default function Home() {
     onSuccess: (data, text) => {
       if (text === inputText) {
         setInputAiScore(data.aiScore);
+        setStyleExcerpt(data.styleExcerpt || "");
         if (data.needsChunking) {
           setInputChunks(data.chunks);
           setSelectedChunkIds(data.chunks.map((chunk: TextChunk) => chunk.id));
@@ -136,6 +137,7 @@ export default function Home() {
       analyzeTextMutation.mutate(text);
     } else {
       setInputAiScore(null);
+      setStyleExcerpt("");
       setInputChunks([]);
     }
   };
@@ -259,6 +261,7 @@ export default function Home() {
                 onClear={() => {
                   setInputText("");
                   setInputAiScore(null);
+                  setStyleExcerpt("");
                   setInputChunks([]);
                   setSelectedChunkIds([]);
                 }}
@@ -272,6 +275,7 @@ export default function Home() {
                 placeholder="The exact Nineteen Eighty-Four passage used for the rewrite will appear here..."
                 value={styleExcerpt}
                 onChange={() => {}}
+                isLoading={analyzeTextMutation.isPending}
                 readOnly
               />
 
