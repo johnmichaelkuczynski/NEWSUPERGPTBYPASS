@@ -1,1 +1,2 @@
 - [Google OAuth reinstatement](google-oauth-passport.md) — canonical Passport.js Google OAuth pattern this user demands; never substitute Clerk/Replit Auth/Auth.js.
+- [Syntactic grafting requirement](syntactic-grafting.md) — humanization requires dependency/semantic-role compatible sentence hosts; style imitation and surface heuristics are unacceptable.

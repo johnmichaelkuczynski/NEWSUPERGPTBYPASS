@@ -48,11 +48,15 @@ async function enforceMeaningAndLength(
   provider: string,
   inputText: string,
   proposedOutput: string,
+  preserveSyntacticGraft = false,
 ): Promise<string> {
   let output = cleanMarkup(proposedOutput);
   let comparison = await aiProviderService.compareMeaning(provider, inputText, output);
 
   if (hasExtremeLengthDrift(inputText, output) || !comparison.sameMeaning) {
+    if (preserveSyntacticGraft) {
+      throw new Error("The sentence-level syntactic graft did not pass final meaning and length verification");
+    }
     console.warn("Rewrite failed automatic meaning or length validation; repairing output.");
     output = cleanMarkup(await aiProviderService.repairMeaning(
       provider,
@@ -249,6 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rewriteRequest.provider,
           rewriteRequest.inputText,
           rewrittenText,
+          !!rewriteRequest.styleText?.trim(),
         );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
@@ -316,6 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           provider || originalJob.provider,
           originalJob.outputText,
           rewrittenText,
+          !!originalJob.styleText?.trim(),
         );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)

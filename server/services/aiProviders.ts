@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from '@anthropic-ai/sdk';
+import { rankSyntacticCandidates, selectSyntacticHosts, splitSentences, type SyntacticHost } from "./syntacticGrafting";
 
 /*
 <important_code_snippet_instructions>
@@ -116,25 +117,36 @@ A number of very contrived solutions to this paradox have been proposed, all of 
 But the real solution is clear. First of all, it is only principled generalizations that can be confirmed. Supposing that you assert (i) with the intention of affirming a principled as opposed to an accidental generalization, you are saying that instances of the property of being a raven grounds or causes instances of blackness. Read thus, (i) is most certainly not equivalent with (ii) or with any variation thereof. Be it noted that while there is a natural nomic or causal reading of (i), there is no such reading of (ii). Also be it noted that it is only principled as opposed to accidental generalizations that can be confirmed. "All metal expands when heated" can be confirmed but not "all objects in Smith's pocket expand when heated." In general, when read as principled and therefore confirmable generalization, "all x's are y's" has nomic or causal content is therefore not equivalent with "all non-y's are non-x's." Case closed on the Raven Paradox.`;
 
   const sourceWordCount = params.inputText.trim().split(/\s+/).filter(Boolean).length;
-  const sourceSentenceCount = (params.inputText.match(/[.!?]+(?:\s|$)/g) || []).length || 1;
+  const sourceSentenceCount = splitSentences(params.inputText).length || 1;
   const minimumWords = Math.max(1, Math.floor(sourceWordCount * 0.8));
   const maximumWords = Math.max(minimumWords, Math.ceil(sourceWordCount * 1.2));
 
-  let prompt = `Perform a style-only graft. First study the ENTIRE style sample holistically—not merely its opening or a same-length excerpt. Infer its recurring sentence architecture, clause movement, cadence, transitions, paragraph development, lexical register, rhetorical habits, qualification patterns, emphasis patterns, and characteristic irregularities. Then graft only the INPUT's meaning onto that global style.
+  const grafts = selectSyntacticHosts(params.inputText, styleSample);
+  const graftPlan = grafts.map((graft) => `PAIR ${graft.inputIndex + 1}
+INPUT MEANING: ${graft.inputSentence}
+SELECTED SYNTACTIC HOST FROM STYLE SAMPLE: ${graft.hostSentence}
+HOST STRUCTURE: ${graft.structure}
+MANDATORY CLAUSE-SLOT TEMPLATE: ${graft.template}
+`).join("\n");
 
-When the input and style sample have different lengths, compress the style sample's recurring patterns proportionally into an output the size of the input. Do not reproduce the style sample's document-length structure. A sentence-by-sentence substitution is appropriate only in the exceptional case where the two texts naturally have the same length and corresponding structure.
+  let prompt = `Execute the sentence-level syntactic graft plan below. The application has already examined every eligible sentence in the entire style sample and selected a structurally compatible host for each input sentence.
 
-ENTIRE STYLE SAMPLE:
-"${styleSample}"
+For each pair, write one sentence by filling the [CONTENT] slots in the mandatory template with the paired input sentence's meaning. Retain the template's function words, clause order, subordination or coordination, punctuation pattern, cadence, qualification placement, and rhetorical movement wherever grammatically possible. Inflect verbs and change pronouns or determiners only when required for grammar. Replace all of the host's subject matter. The host is a grammatical mold, not a content source.
+
+SYNTACTIC GRAFT PLAN:
+${graftPlan}
 
 NON-NEGOTIABLE FIDELITY AND LENGTH RULES:
 - Preserve every claim, fact, entity, number, qualification, causal relationship, logical relationship, and conclusion in the source.
-- Use the style sample only to learn HOW to write, never WHAT to say.
-- Never copy or adapt the style sample's title, chapter heading, section heading, numbering, subject matter, claims, arguments, examples, quotations, names, specialized terminology, or conclusions.
+- Produce exactly ${sourceSentenceCount} output sentences in the same semantic order as the input.
+- Use each selected host only as a syntactic mold. Replace every content-bearing element belonging to the host.
+- Every output sentence must visibly instantiate its mandatory clause-slot template. Do not fall back to the input sentence's original syntax.
+- Never copy or adapt a host's title, heading, numbering, subject matter, claims, arguments, examples, quotations, names, specialized terminology, theory, doctrine, or conclusion.
 - Do not introduce a new topic, argument, section, chapter, theory, doctrine, label, or extended example.
 - Do not emit labels such as "Chapter," "Section," or numbered headings unless they already occur in the input.
-- Keep approximately the same number of sentences as the source (${sourceSentenceCount} sentences).
 - Keep the rewrite between ${minimumWords} and ${maximumWords} words. The source contains ${sourceWordCount} words.
+- Do not polish the prose into generic assistant language. Preserve unusual, asymmetric, abrupt, or imperfect structural features of the selected hosts when they remain grammatical.
+- Do not add an introduction, summary, explanation, transition, or concluding reflection.
 - Return only the rewritten passage.
 
 `;
@@ -175,6 +187,16 @@ export interface MeaningComparison {
 
 function getPrompt(params: RewriteParams): string {
   return params.rawPrompt || buildRewritePrompt(params);
+}
+
+function cleanSingleSentence(text: string): string {
+  return text
+    .replace(/```[a-z]*\n?/gi, "")
+    .replace(/```/g, "")
+    .replace(/^(?:output|grafted sentence|rewrite)\s*:\s*/i, "")
+    .replace(/^["“]|["”]$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export class AIProviderService {
@@ -362,7 +384,96 @@ export class AIProviderService {
     }
   }
 
+  private async graftSentenceBySentence(provider: string, params: RewriteParams): Promise<string> {
+    const initialGrafts = selectSyntacticHosts(params.inputText, params.styleText || "");
+    const grafts = await Promise.all(initialGrafts.map(async (initialGraft) => {
+      const candidates = rankSyntacticCandidates(
+        initialGraft.inputSentence,
+        params.styleText || "",
+      );
+      const candidateList = candidates.map((candidate, index) => `${index + 1}. ${candidate.hostSentence}
+Template: ${candidate.template}
+Structure: ${candidate.structure}`).join("\n\n");
+      const selectionPrompt = `Select the ONE syntactic host that can express the complete meaning of the input sentence with the least semantic distortion.
+
+Judge semantic capacity, not topical similarity. The host must have compatible grammatical roles, verb valency, clause relationships, agency, polarity, modality, and qualification structure. Its subject matter will be discarded. Reject structures that would force a new causal, conditional, comparative, negative, or inferential relationship.
+
+INPUT SENTENCE:
+${initialGraft.inputSentence}
+
+CANDIDATE HOSTS SELECTED FROM THE ENTIRE STYLE SAMPLE:
+${candidateList}
+
+Return only the number of the best candidate.`;
+
+      const selection = await this.rewrite(provider, {
+        inputText: initialGraft.inputSentence,
+        rawPrompt: selectionPrompt,
+      });
+      const selectedIndex = Number(selection.match(/\d+/)?.[0]) - 1;
+      const selected = candidates[selectedIndex];
+      if (!selected) {
+        throw new Error(`No semantically compatible host was selected for sentence ${initialGraft.inputIndex + 1}`);
+      }
+      return {
+        ...selected,
+        inputIndex: initialGraft.inputIndex,
+        inputSentence: initialGraft.inputSentence,
+      } satisfies SyntacticHost;
+    }));
+    if (grafts.length === 0) {
+      throw new Error("The input or style sample does not contain usable sentences for syntactic grafting");
+    }
+
+    const additionalInstructions = buildPresetBlock(params.selectedPresets, params.customInstructions);
+    const graftedSentences = await Promise.all(grafts.map(async (graft) => {
+      const buildGraftPrompt = (correction = "") => `Perform one literal syntactic graft.
+
+MEANING TO EXPRESS:
+${graft.inputSentence}
+
+SELECTED HOST SENTENCE:
+${graft.hostSentence}
+
+MANDATORY HOST TEMPLATE:
+${graft.template}
+
+Write exactly one sentence. Fill the template's [CONTENT] slots with the complete meaning above. Keep the host's clause order, function-word scaffolding, subordination or coordination, punctuation pattern, qualification placement, and rhetorical movement. Inflect verbs and adjust pronouns or determiners only where grammar requires it.
+
+Delete every content-bearing element inherited from the host. Do not reuse the host's subject matter, claims, examples, names, technical terms, headings, or conclusions. Do not revert to the source sentence's syntax. Do not add context, explanation, polish, summary, or a transition to another sentence.
+
+${additionalInstructions}
+${correction}
+Return the one grafted sentence only.`;
+
+      let result = cleanSingleSentence(await this.rewrite(provider, {
+        inputText: graft.inputSentence,
+        rawPrompt: buildGraftPrompt(),
+      }));
+      if (!result) throw new Error(`Syntactic graft ${graft.inputIndex + 1} returned no sentence`);
+
+      let comparison = await this.compareMeaning(provider, graft.inputSentence, result);
+      if (!comparison.sameMeaning) {
+        result = cleanSingleSentence(await this.rewrite(provider, {
+          inputText: graft.inputSentence,
+          rawPrompt: buildGraftPrompt(`The prior graft failed semantic verification. Correct these exact defects while retaining the same mandatory host template:\n${JSON.stringify(comparison.differences)}\n`),
+        }));
+        comparison = await this.compareMeaning(provider, graft.inputSentence, result);
+      }
+      if (!comparison.sameMeaning) {
+        throw new Error(`Sentence ${graft.inputIndex + 1} could not be grafted without changing its meaning`);
+      }
+      return result;
+    }));
+
+    return graftedSentences.join(" ");
+  }
+
   async rewrite(provider: string, params: RewriteParams): Promise<string> {
+    if (params.styleText?.trim() && !params.rawPrompt) {
+      return this.graftSentenceBySentence(provider, params);
+    }
+
     const allProviders = ['anthropic', 'openai', 'deepseek', 'perplexity', 'venice'];
     const ordered = [provider, ...allProviders.filter(p => p !== provider)];
 
