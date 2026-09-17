@@ -6,9 +6,41 @@ id = "TNawdYuv12ZQncNeNiSEj"
 uri = "file://promo/audio/promo_music.mp3"
 type = "audio"
 title = "gptbypass_promo"
+logical_id = "db26783e-7f60-4874-bd28-8049167e6919"
 
 [[outputs]]
 id = "46FR5Z_qtgmclrK9gjLJ_"
 uri = "file://promo/GPT_Bypass_Promo.mp4"
 type = "video"
 title = "GPT Bypass — Promotional Video"
+logical_id = "52070e6d-815c-4dac-ada2-7b6e0be7317e"
+
+[[outputs]]
+id = "AniOSGrzT12PC9KFH6-c3"
+uri = "file://attached_assets/generated_audio/gptbypass_promo_narration.mp3"
+type = "audio"
+title = "GPT Bypass promotional narration"
+description = "Text-to-speech audio: Introducing GPT Bypass: the only humanizer that consistently beats GPTZero. Other humanizers do not work reliably. This one does. First, watch as we run an original passage thro…"
+logical_id = "c6bcf8d6-08cf-4495-8cc7-079c4e104f91"
+
+[[outputs]]
+id = "T6OBlNk5dLFIVtHqoutvW"
+uri = "file://attached_assets/generated_audio/gptbypass_promo_narration_final.mp3"
+type = "audio"
+title = "GPT Bypass final promotional narration"
+description = "Text-to-speech audio: Introducing GPT Bypass, the only humanizer that beats GPTZero consistently. The others do not work. This one does. Watch. We begin by testing a passage in GPTZero, proving it is…"
+logical_id = "f78ccc0f-f19d-4b44-8e63-dac7ab4d505e"
+
+[[outputs]]
+id = "6qALVe5jsmEEDjHD1RQJy"
+uri = "file://output/gptbypass_promotional_video.mp4"
+type = "video"
+title = "GPT Bypass Promotional Video"
+description = "75.5-second full-screen promotional video with slow, relaxed American male narration, no music, and no visual overlays."
+logical_id = "09fc1dac-de45-4d0f-84d7-1b733012a9ff"
+content_hash = "sha256:11e0205669a93d3e4fbc4fe3a4b45922400c24cdecbcd0c65aa30854c2bb6c38"
+size = 9313862
+mtime_ms = 1789621166618
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:766f20a1-70ec-4e77-a66b-de17fecfdbdf/09fc1dac-de45-4d0f-84d7-1b733012a9ff/4d4a92ef-b29e-4dbd-950d-a6e9a1776b39"
+storage_version_token = "1789621185647688"
+content_type = "video/mp4"
