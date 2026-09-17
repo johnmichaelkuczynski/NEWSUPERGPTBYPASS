@@ -353,7 +353,6 @@ export default function Home() {
             <CustomInstructions
               value={customInstructions}
               onChange={setCustomInstructions}
-              onGenerate={handleGenerateRewrite}
               isGenerating={isProcessing}
               canGenerate={!!inputText.trim()}
               selectedPresets={selectedPresets}

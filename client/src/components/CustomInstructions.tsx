@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 interface CustomInstructionsProps {
   value: string;
   onChange: (value: string) => void;
-  onGenerate: () => void;
   isGenerating: boolean;
   canGenerate: boolean;
   selectedPresets?: string[];
@@ -18,7 +17,6 @@ interface CustomInstructionsProps {
 export default function CustomInstructions({
   value,
   onChange,
-  onGenerate,
   isGenerating,
   canGenerate,
   selectedPresets = [],
@@ -115,24 +113,6 @@ export default function CustomInstructions({
                   Delete All
                 </Button>
               )}
-              <Button
-                onClick={onGenerate}
-                disabled={!canGenerate || isGenerating}
-                size="lg"
-                className="font-semibold px-8 py-3 text-base bg-primary hover:bg-primary/90 transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                {isGenerating ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Rewriting...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-wand-magic-sparkles mr-2"></i>
-                    Start Rewrite
-                  </>
-                )}
-              </Button>
             </div>
           </div>
         </div>

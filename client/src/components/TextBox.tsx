@@ -133,7 +133,29 @@ export default function TextBox({
             {title}
           </h2>
           <div className="flex items-center space-x-2">
-            {onClear && value && (
+            {isBoxA && onEnterSubmit && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  onClick={onEnterSubmit}
+                  disabled={!canSubmit}
+                  className="font-semibold"
+                >
+                  <i className="fas fa-wand-magic-sparkles mr-1"></i>Humanize
+                </Button>
+                {onClear && value && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onClear}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <i className="fas fa-trash mr-1"></i>Clear
+                  </Button>
+                )}
+              </div>
+            )}
+            {!isBoxA && onClear && value && (
               <Button
                 variant="outline"
                 size="sm"
