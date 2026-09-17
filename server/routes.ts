@@ -9,6 +9,7 @@ import { textChunkerService } from "./services/textChunker";
 import { gptZeroService } from "./services/gptZero";
 import { aiProviderService } from "./services/aiProviders";
 import { runFaithfulRewrite } from "./services/rewriteFidelity";
+import { getMasterStyleExcerpt } from "./services/masterStyle";
 import { documentGeneratorService } from "./services/documentGenerator";
 import type { RewriteRequest, RewriteResponse } from "@shared/schema";
 
@@ -119,13 +120,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const inputText = rewriteRequest.inputText;
+      const operativeStyleText = getMasterStyleExcerpt(inputText);
       const inputAnalysis = inputText.length >= 1 && inputText.length <= 150000
         ? await gptZeroService.analyzeText(inputText)
         : { aiScore: null };
 
       const rewriteJob = await storage.createRewriteJob({
         inputText: rewriteRequest.inputText,
-        styleText: rewriteRequest.styleText,
+        styleText: operativeStyleText,
         contentMixText: rewriteRequest.contentMixText,
         customInstructions: rewriteRequest.customInstructions,
         selectedPresets: rewriteRequest.selectedPresets,
@@ -140,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const rewriteResult = await runFaithfulRewrite(rewriteRequest.provider, {
           inputText: rewriteRequest.inputText,
-          styleText: rewriteRequest.styleText,
+          styleText: operativeStyleText,
           contentMixText: rewriteRequest.contentMixText,
           customInstructions: rewriteRequest.customInstructions,
           selectedPresets: rewriteRequest.selectedPresets,
@@ -194,10 +196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!originalJob || !originalJob.outputText) {
         return res.status(404).json({ message: "Original job not found or incomplete" });
       }
+      const operativeStyleText = getMasterStyleExcerpt(originalJob.outputText);
 
       const rewriteJob = await storage.createRewriteJob({
         inputText: originalJob.outputText,
-        styleText: originalJob.styleText,
+        styleText: operativeStyleText,
         contentMixText: originalJob.contentMixText,
         customInstructions: customInstructions || originalJob.customInstructions,
         selectedPresets: selectedPresets || originalJob.selectedPresets,
@@ -212,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const rewriteResult = await runFaithfulRewrite(provider || originalJob.provider, {
           inputText: originalJob.outputText,
-          styleText: originalJob.styleText || undefined,
+          styleText: operativeStyleText,
           contentMixText: originalJob.contentMixText || undefined,
           customInstructions: customInstructions || originalJob.customInstructions || undefined,
           selectedPresets: selectedPresets || originalJob.selectedPresets || undefined,

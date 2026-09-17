@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import TextBox from "@/components/TextBox";
@@ -10,24 +10,20 @@ import ApiKeyManager from "@/components/ApiKeyManager";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { writingSamples } from "@/lib/writingSamples";
 import type { TextChunk, RewriteRequest, RewriteResponse } from "@shared/schema";
 
 export default function Home() {
   const [provider, setProvider] = useState<string>("anthropic");
   const [inputText, setInputText] = useState("");
-  const [styleText, setStyleText] = useState("");
   const [outputText, setOutputText] = useState("");
-  const [customInstructions, setCustomInstructions] = useState("Preserve meaning while using style of sample in Box B.");
+  const [customInstructions, setCustomInstructions] = useState("Preserve every source claim and its meaning.");
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
-  const [selectedStyleSample, setSelectedStyleSample] = useState<string>("");
   const [showApiKeyManager, setShowApiKeyManager] = useState(false);
 
   const [contentMixText, setContentMixText] = useState("");
   const [mixingMode, setMixingMode] = useState<'style' | 'content' | 'both'>('style');
 
   const [inputAiScore, setInputAiScore] = useState<number | null>(null);
-  const [styleAiScore, setStyleAiScore] = useState<number | null>(null);
   const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
   const [fidelityWarning, setFidelityWarning] = useState<string | null>(null);
 
@@ -66,14 +62,6 @@ export default function Home() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    const defaultSample = writingSamples.find(sample => sample.id === "formal-functional-relationships");
-    if (defaultSample && !selectedStyleSample) {
-      setSelectedStyleSample(defaultSample.content);
-      setStyleText(defaultSample.content);
-    }
-  }, []);
-
   const analyzeTextMutation = useMutation({
     mutationFn: async (text: string) => {
       return await apiRequest("/api/analyze-text", { method: "POST", body: { text } });
@@ -85,8 +73,6 @@ export default function Home() {
           setInputChunks(data.chunks);
           setSelectedChunkIds(data.chunks.map((chunk: TextChunk) => chunk.id));
         }
-      } else if (text === styleText) {
-        setStyleAiScore(data.aiScore);
       }
     },
     onError: (error: any) => {
@@ -151,20 +137,6 @@ export default function Home() {
     }
   };
 
-  const handleStyleTextChange = (text: string) => {
-    setStyleText(text);
-    if (text.trim()) {
-      analyzeTextMutation.mutate(text);
-    } else {
-      setStyleAiScore(null);
-    }
-  };
-
-  const handleStyleSampleSelect = (content: string) => {
-    setSelectedStyleSample(content);
-    handleStyleTextChange(content);
-  };
-
   const handleGenerateRewrite = () => {
     if (!inputText.trim()) {
       toast({ title: "Input Required", description: "Please provide input text to rewrite", variant: "destructive" });
@@ -176,7 +148,6 @@ export default function Home() {
       inputText: inputChunks.length > 0 && selectedChunkIds.length > 0
         ? inputChunks.filter(chunk => selectedChunkIds.includes(chunk.id)).map(chunk => chunk.content).join('\n\n')
         : inputText,
-      styleText: styleText.trim() || undefined,
       contentMixText: contentMixText.trim() || undefined,
       customInstructions: customInstructions.trim() || undefined,
       selectedPresets: selectedPresets.length > 0 ? selectedPresets : undefined,
@@ -209,12 +180,10 @@ export default function Home() {
 
   const handleClearAll = () => {
     setInputText("");
-    setStyleText("");
     setContentMixText("");
     setOutputText("");
     setCustomInstructions("");
     setInputAiScore(null);
-    setStyleAiScore(null);
     setOutputAiScore(null);
     setFidelityWarning(null);
     setInputChunks([]);
@@ -256,13 +225,6 @@ export default function Home() {
           <LeftSidebar
             selectedPresets={selectedPresets}
             onPresetsChange={setSelectedPresets}
-            selectedStyleSample={selectedStyleSample}
-            onStyleSampleSelect={handleStyleSampleSelect}
-            onContentSampleSelect={(content) => {
-              setContentMixText(content);
-              setMixingMode(styleText.trim() ? 'both' : 'content');
-              toast({ description: "Writing sample sent to Content Box successfully!" });
-            }}
           />
         </div>
 
@@ -301,36 +263,19 @@ export default function Home() {
               />
 
               <TextBox
-                title="Style Sample (Box B)"
-                icon="fas fa-palette"
-                placeholder="Paste or upload a sample of human-written text whose style you want to mimic..."
-                value={styleText}
-                onChange={handleStyleTextChange}
-                aiScore={styleAiScore}
-                isLoading={analyzeTextMutation.isPending}
-                supportFileUpload
-                onClear={() => {
-                  setStyleText("");
-                  setStyleAiScore(null);
-                }}
-                onEnterSubmit={handleGenerateRewrite}
-                canSubmit={!!inputText.trim()}
-              />
-
-              <TextBox
                 title="Content Reference (Box C)"
                 icon="fas fa-layer-group"
                 placeholder="Paste or upload content you want to blend with your text..."
                 value={contentMixText}
                 onChange={(text) => {
                   setContentMixText(text);
-                  setMixingMode(text.trim() ? (styleText.trim() ? 'both' : 'content') : 'style');
+                  setMixingMode(text.trim() ? 'both' : 'style');
                 }}
                 isLoading={analyzeTextMutation.isPending}
                 supportFileUpload
                 onClear={() => {
                   setContentMixText("");
-                  setMixingMode(styleText.trim() ? 'style' : 'style');
+                  setMixingMode('style');
                 }}
                 onEnterSubmit={handleGenerateRewrite}
                 canSubmit={!!inputText.trim()}
@@ -366,7 +311,6 @@ export default function Home() {
               isGenerating={isProcessing}
               canGenerate={!!inputText.trim()}
               selectedPresets={selectedPresets}
-              hasStyleSample={!!styleText.trim()}
               hasContentMix={!!contentMixText.trim()}
               onClearAll={handleClearAll}
             />
@@ -374,7 +318,6 @@ export default function Home() {
             <div className="mt-8 mb-8">
               <ChatInterface
                 inputText={inputText}
-                styleText={styleText}
                 contentMixText={contentMixText}
                 outputText={outputText}
                 onSendToBox={(boxId, text) => {
@@ -383,13 +326,9 @@ export default function Home() {
                       setInputText(text);
                       setInputAiScore(null);
                       break;
-                    case 'style':
-                      setStyleText(text);
-                      setMixingMode(contentMixText.trim() ? 'both' : 'style');
-                      break;
                     case 'content':
                       setContentMixText(text);
-                      setMixingMode(styleText.trim() ? 'both' : 'content');
+                      setMixingMode(text.trim() ? 'both' : 'style');
                       break;
                     case 'output':
                       setOutputText(text);

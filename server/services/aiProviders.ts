@@ -102,6 +102,9 @@ function buildRewritePrompt(params: {
   customInstructions?: string;
   fidelityCorrections?: ClaimAuditResult;
 }): string {
+  const inputWordCount = params.inputText.trim().split(/\s+/).filter(Boolean).length;
+  const minimumOutputWords = Math.max(1, Math.floor(inputWordCount * 0.85));
+  const maximumOutputWords = Math.max(minimumOutputWords, Math.ceil(inputWordCount * 1.2));
   const hasStyle = !!(params.styleText && params.styleText.trim() !== "");
   const hasContent = !!(params.contentMixText && params.contentMixText.trim() !== "");
   const styleSample = hasStyle ? params.styleText! : `DEFAULT STYLE SAMPLE (The Raven Paradox):
@@ -116,11 +119,13 @@ which, though logically equivalent, seem to confirmationally equivalent, in that
 A number of very contrived solutions to this paradox have been proposed, all of which either deny that there is a paradox or invent ad hoc systems of logic to validate the 'solution' in question. 
 But the real solution is clear. First of all, it is only principled generalizations that can be confirmed. Supposing that you assert (i) with the intention of affirming a principled as opposed to an accidental generalization, you are saying that instances of the property of being a raven grounds or causes instances of blackness. Read thus, (i) is most certainly not equivalent with (ii) or with any variation thereof. Be it noted that while there is a natural nomic or causal reading of (i), there is no such reading of (ii). Also be it noted that it is only principled as opposed to accidental generalizations that can be confirmed. "All metal expands when heated" can be confirmed but not "all objects in Smith's pocket expand when heated." In general, when read as principled and therefore confirmable generalization, "all x's are y's" has nomic or causal content is therefore not equivalent with "all non-y's are non-x's." Case closed on the Raven Paradox.`;
 
-  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following style sample. Keep copying the sample's sentence structure, rhythm, definition-then-example pattern, parenthetical glosses, transitions, paragraph shape, and sentence-length variation when those structures can express the source content faithfully:\n"${styleSample}"\n\n`;
+  let prompt = `Rewrite the text below so that its style matches, at a granular level, the style of the following master narrative excerpt. Keep copying the excerpt's sentence structure, rhythm, parenthetical glosses, transitions, paragraph shape, and sentence-length variation when those structures can express the source content faithfully:\n"${styleSample}"\n\n`;
 
-  prompt += `Box B supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over Box B's arguments, logical forms (e.g., 'If A, then B,' 'Nothing can be both X and Y'), claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in Box B has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
+  prompt += `The master narrative excerpt supplies STYLE ONLY: syntax, rhythm, sentence length, transitions and paragraph shape. Do not carry over the excerpt's plot, characters, setting, arguments, logical forms, claims or examples. Every claim in the output must come from Box A, and every claim in Box A must appear in the output. Add no new assertions, conditionals, impossibility claims or generalizations. If a structure in the excerpt has no counterpart in Box A's content, skip that structure instead of inventing content to fill it.\n\n`;
 
-  prompt += `Do not copy numbering, example labels, footnote markers, asterisks or cross-references (e.g., '1 obviously expresses…', '2–4', '4*', 'the first type', 'as in example 3') unless the same markers appear in Box A.\n\n`;
+  prompt += `Keep the output approximately the same length as Box A: ${minimumOutputWords}-${maximumOutputWords} words. Begin directly with Box A's content. Do not add attention-getters, announcements, framing language, or introductory commands. Do not put the output in quotation marks unless Box A is quoted. Do not turn expository source text into a scene or story. Do not invent a narrator, character, location, action, dialogue, quotation, sensory detail, motive, emotion, metaphor, prediction, or background fact. Use the excerpt's prose mechanics only.\n\n`;
+
+  prompt += `Do not copy numbering, labels, chapter markers, footnote markers, asterisks or cross-references unless the same markers appear in Box A.\n\n`;
 
   if (hasContent) {
     prompt += `Use the following content reference only to clarify the wording of claims already present in Box A. It must not contribute any new claim, example, argument, condition, or generalization:\n"${params.contentMixText}"\n\n`;
@@ -384,7 +389,7 @@ export class AIProviderService {
 Return JSON only in exactly this shape:
 {"addedClaims":["claims in Box D that are not supported by Box A"],"missingClaims":["claims in Box A that do not appear in Box D"]}
 
-Use an empty array when there are no problems. Ignore wording, syntax, rhythm, order, paragraphing, parenthetical glosses, and other purely stylistic differences. Do not treat a faithful paraphrase as missing or added. Be strict about invented examples, conditionals, impossibility claims, logical forms, and generalizations.
+Use an empty array when there are no problems. Ignore wording, syntax, rhythm, order, paragraphing, parenthetical glosses, and other purely stylistic differences. Do not treat a faithful paraphrase as missing or added. Every detail in Box D must be traceable to Box A. List invented narrators, characters, locations, actions, dialogue, quotations, sensory details, motives, emotions, metaphors presented as descriptions, predictions, background facts, examples, conditionals, impossibility claims, logical forms, and generalizations as added claims. A much longer Box D is strong evidence that unsupported claims were added.
 
 Box A:
 ${inputText}

@@ -76,6 +76,52 @@ function hasAuditProblems(audit: ClaimAuditResult): boolean {
   return audit.addedClaims.length > 0 || audit.missingClaims.length > 0;
 }
 
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function applyDeterministicFidelityGuards(
+  audit: ClaimAuditResult,
+  inputText: string,
+  outputText: string,
+): ClaimAuditResult {
+  const inputWords = countWords(inputText);
+  const outputWords = countWords(outputText);
+  const guarded: ClaimAuditResult = {
+    addedClaims: [...audit.addedClaims],
+    missingClaims: [...audit.missingClaims],
+  };
+
+  const maximumExpectedWords = Math.max(inputWords + 12, Math.ceil(inputWords * 1.35));
+  if (outputWords > maximumExpectedWords) {
+    guarded.addedClaims.push(
+      `The ${outputWords}-word draft substantially exceeds the ${inputWords}-word source and contains unsupported expansion. Keep it close to the source length and remove all invented narrative detail.`,
+    );
+  }
+
+  const minimumExpectedWords = Math.max(1, Math.floor(inputWords * 0.65));
+  if (outputWords < minimumExpectedWords) {
+    guarded.missingClaims.push(
+      `The ${outputWords}-word draft is too compressed to reliably retain every claim from the ${inputWords}-word source.`,
+    );
+  }
+
+  const quotePattern = /["“”‘’]/;
+  if (!quotePattern.test(inputText) && quotePattern.test(outputText)) {
+    guarded.addedClaims.push(
+      "The draft introduced quotation or dialogue formatting that does not appear in Box A. Remove it and state only Box A's content directly.",
+    );
+  }
+
+  if (/^\s*["“‘']?\s*(?:attention\b|listen\b|note\b|consider\b|imagine\b)/i.test(outputText)) {
+    guarded.addedClaims.push(
+      "The draft introduced an attention-getter or framing command that does not appear in Box A. Begin directly with the source content.",
+    );
+  }
+
+  return guarded;
+}
+
 function logCleanup(stage: string, result: TemplateCleanupResult): void {
   if (result.removed.length > 0) {
     console.warn(`[template-cleanup:${stage}] Removed: ${JSON.stringify(result.removed)}`);
@@ -92,7 +138,11 @@ export async function runFaithfulRewrite(provider: string, params: RewriteParams
 
   let firstAudit: ClaimAuditResult;
   try {
-    firstAudit = await aiProviderService.auditClaims(provider, params.inputText, firstCleanup.text);
+    firstAudit = applyDeterministicFidelityGuards(
+      await aiProviderService.auditClaims(provider, params.inputText, firstCleanup.text),
+      params.inputText,
+      firstCleanup.text,
+    );
   } catch (error: any) {
     console.error("Claim fidelity audit unavailable:", error.message);
     return {
@@ -125,7 +175,11 @@ export async function runFaithfulRewrite(provider: string, params: RewriteParams
 
   let finalAudit: ClaimAuditResult;
   try {
-    finalAudit = await aiProviderService.auditClaims(provider, params.inputText, correctedCleanup.text);
+    finalAudit = applyDeterministicFidelityGuards(
+      await aiProviderService.auditClaims(provider, params.inputText, correctedCleanup.text),
+      params.inputText,
+      correctedCleanup.text,
+    );
   } catch (error: any) {
     console.error("Final claim fidelity audit unavailable:", error.message);
     return {
