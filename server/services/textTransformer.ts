@@ -1,6 +1,8 @@
 import { aiProviderService } from "./aiProviders";
 
 function buildBlueprintPrompt(inputText: string): string {
+  const sourceWords = inputText.trim().split(/\s+/).filter(Boolean).length;
+  const maximumBlueprintWords = Math.max(80, sourceWords * 2);
   return `Do not rewrite or summarize the passage. Produce a detailed transformation blueprint for another writer.
 
 For every substantive claim in the passage, identify:
@@ -13,6 +15,8 @@ For every substantive claim in the passage, identify:
 7. CONNECTION: the actual logical reason this claim leads to the next claim. Write "none" if there is no real connection.
 
 Do not protect the source's vagueness. Do not recommend merely replacing difficult words with simple synonyms. Develop the source's flicker of meaning into an operational explanation. A blueprint that says only "use simpler wording," "be more specific," or "researchers study the brain" has failed.
+
+Keep the entire blueprint under ${maximumBlueprintWords} words. Use compact entries. Do not repeat the source.
 
 INFERENCE LICENSE
 The source's vagueness is not a fact that must be preserved. When the source names a process without explaining it, select the most plausible concrete interpretation and develop that interpretation. The added mechanism or example does not have to be logically entailed by the source; it has to be consistent with the source and make the source's intended claim intelligible. If several interpretations are possible, choose one. Risk selecting an interpretation that the author might reject rather than returning a safe paraphrase that explains nothing.
@@ -80,6 +84,11 @@ WRONG: "Researchers aim to understand cognition and consciousness by analyzing t
 Full calibration — reconstruct the argument rather than preserving empty language:
 SOURCE: "Reverse brain engineering represents a fascinating intersection of neuroscience, computational modeling, and artificial intelligence. By systematically mapping the brain's intricate neural architecture, researchers hope to unlock the fundamental principles underlying cognition and consciousness. This endeavor involves numerous complex challenges. Advances in connectomics, high-resolution imaging, and machine learning have opened up exciting new possibilities. A deeper understanding of neural computation could revolutionize neurological treatment and AI."
 CORRECT: "Reverse brain engineering combines neuroscience, artificial intelligence, and computational modeling. Its basic principle is that we can learn how the brain works by building machines that do what brains do. If researchers build a machine that learns language, the machine will establish at least one possible account of how a brain acquires language. The machine will not prove that the brain uses the same mechanism, but researchers will be able to inspect the machine, alter its parts, and test which parts are required for learning. The brain contains too many interacting neurons and synapses for researchers to reproduce all of them individually, and a machine that imitates one result may omit mechanisms that matter elsewhere. Existing language models nevertheless show that machines can reproduce some cognitive performance. Continued success would produce both scientific explanations and practical technology because researchers would acquire the explanations by building systems that perform the relevant functions."
+
+Full calibration — turn a vague comparison of theories into competing predictions:
+SOURCE: "Universal grammar and connectionism represent two fascinating yet contrasting approaches to understanding human language. Universal grammar proposes that the brain contains an innate set of linguistic principles, whereas connectionism explains language through learned patterns distributed across neural networks. It is important to note that both perspectives offer valuable insights while also presenting significant limitations. Although universal grammar emphasizes biological preparedness, connectionism highlights the transformative power of experience and statistical learning. Ultimately, integrating these approaches may provide a more comprehensive understanding of language acquisition."
+CORRECT: "Universal grammar says that children are born with language-specific constraints on the grammars they can learn. Connectionism says that a learning system can acquire grammatical behavior by adjusting connections in response to the language it receives. The theories therefore make different claims about what must exist before learning begins. Researchers can test the difference by training a system without language-specific rules on the amount and type of speech available to children. If the system acquires a grammatical pattern that children acquire, that pattern does not require the particular innate rule proposed to explain it. If the system repeatedly fails while children succeed, the failure identifies information or learning constraints that the model lacks. Connectionist models still contain built-in network structures and learning rules, so the dispute is not whether anything is innate. The dispute is which initial constraints are required and whether those constraints are specific to language."
+WRONG: "The two theories offer complementary insights and can be integrated to provide a more comprehensive understanding of language acquisition."
 
 Example 3 — prefer explicit reference over elegance:
 SOURCE: "Mary and Bob often quarreled, but the latter was less troubled by these spats than the former."
@@ -193,15 +202,8 @@ export class TextTransformerService {
       throw new Error("The transformation returned no draft");
     }
 
-    const audited = await aiProviderService.rewrite("openai", {
-      inputText: text,
-      rawPrompt: buildFinalAuditPrompt(text, blueprint, draft),
-    });
-    const selected = audited.trim() && failureScore(audited) < failureScore(draft)
-      ? audited
-      : draft;
     const sourceWords = text.split(/\s+/).filter(Boolean).length;
-    return limitToCompleteSentences(selected, sourceWords * 2);
+    return limitToCompleteSentences(draft, sourceWords * 2);
   }
 }
 

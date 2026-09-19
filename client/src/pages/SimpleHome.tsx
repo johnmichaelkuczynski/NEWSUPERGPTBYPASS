@@ -10,9 +10,24 @@ import type { RewriteResponse } from "@shared/schema";
 export default function SimpleHome() {
   const [inputText, setInputText] = useState("");
   const [outputText, setOutputText] = useState("");
+  const [inputAiScore, setInputAiScore] = useState<number | null>(null);
+  const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const analyzeText = async (text: string, target: "input" | "output") => {
+    try {
+      const data = await apiRequest("/api/analyze-text", {
+        method: "POST",
+        body: { text },
+      }) as { aiScore: number };
+      if (target === "input") setInputAiScore(data.aiScore);
+      else setOutputAiScore(data.aiScore);
+    } catch (error) {
+      console.error("AI detection failed:", error);
+    }
+  };
 
   const transformMutation = useMutation({
     mutationFn: async (text: string) =>
@@ -23,6 +38,7 @@ export default function SimpleHome() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setLastJobId(data.jobId);
+      void analyzeText(data.rewrittenText, "output");
       toast({ title: "Transformation Complete", description: "The passage was reconstructed for directness and clarity." });
     },
     onError: (error: Error) => {
@@ -39,6 +55,7 @@ export default function SimpleHome() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setLastJobId(data.jobId);
+      void analyzeText(data.rewrittenText, "output");
       toast({ title: "Transformation Complete" });
     },
     onError: (error: Error) => {
@@ -54,7 +71,10 @@ export default function SimpleHome() {
   const isProcessing = transformMutation.isPending || reTransformMutation.isPending;
 
   const handleTransform = () => {
-    if (canTransform) transformMutation.mutate(inputText);
+    if (canTransform) {
+      void analyzeText(inputText, "input");
+      transformMutation.mutate(inputText);
+    }
   };
 
   return (
@@ -68,6 +88,7 @@ export default function SimpleHome() {
               icon="fas fa-upload"
               placeholder="Paste or upload the passage to transform..."
               value={inputText}
+              aiScore={inputAiScore}
               onChange={handleInputChange}
               isLoading={false}
               supportFileUpload
@@ -76,7 +97,7 @@ export default function SimpleHome() {
               onEnterSubmit={handleTransform}
               canSubmit={canTransform && !isProcessing}
               actionLabel="Transform"
-              showAiScore={false}
+              showAiScore
               containerClassName="h-[calc(100vh-7rem)] min-h-[620px]"
             />
             <TextBox
@@ -84,6 +105,7 @@ export default function SimpleHome() {
               icon="fas fa-download"
               placeholder="The direct, reconstructed passage will appear here..."
               value={outputText}
+              aiScore={outputAiScore}
               onChange={() => {}}
               isLoading={isProcessing}
               readOnly
@@ -93,7 +115,7 @@ export default function SimpleHome() {
               onDownload={() => setShowDownloadModal(true)}
               onClear={() => window.location.reload()}
               repeatActionLabel="Retransform"
-              showAiScore={false}
+              showAiScore
               containerClassName="h-[calc(100vh-7rem)] min-h-[620px]"
             />
           </div>

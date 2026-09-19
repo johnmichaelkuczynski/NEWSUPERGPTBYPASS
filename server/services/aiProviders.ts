@@ -10,7 +10,7 @@ The newest Anthropic model is "claude-sonnet-5". The prior default "claude-sonne
 */
 
 // <important_do_not_delete>
-const DEFAULT_OPENAI_MODEL = "gpt-4o";
+const DEFAULT_OPENAI_MODEL = "gpt-5.5";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 // </important_do_not_delete>
 
@@ -212,8 +212,7 @@ export class AIProviderService {
         messages: [
           { role: "user", content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        max_completion_tokens: 8000,
       });
 
       console.log("🔥 OpenAI response received, length:", response.choices[0].message.content?.length || 0);
