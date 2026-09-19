@@ -1,4 +1,3 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
@@ -6,8 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import zhiLogo from "@assets/zhi_logoc_1787767286486.png";
 
 interface HeaderProps {
-  provider: string;
-  onProviderChange: (provider: string) => void;
   onShowApiKeys?: () => void;
 }
 
@@ -49,7 +46,7 @@ function AuthControls() {
   );
 }
 
-export default function Header({ provider, onProviderChange }: HeaderProps) {
+export default function Header({}: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-sm border-b border-gray-200 z-40">
       <div className="max-w-full mx-auto px-6 py-4">
@@ -69,21 +66,7 @@ export default function Header({ provider, onProviderChange }: HeaderProps) {
             <span className="text-sm text-gray-500 font-medium">AI Text Rewriter</span>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">LLM Provider:</label>
-              <Select value={provider} onValueChange={onProviderChange}>
-                <SelectTrigger className="w-40" data-testid="select-provider">
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="openai">Zhi 1</SelectItem>
-                  <SelectItem value="anthropic">Zhi 2</SelectItem>
-                  <SelectItem value="deepseek">Zhi 3</SelectItem>
-                  <SelectItem value="perplexity">Zhi 4</SelectItem>
-                  <SelectItem value="venice">Zhi 5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <span className="text-sm font-medium text-gray-600">Humanization by Walter Writes</span>
             <a href="mailto:johnmichaelkuczynski@gmail.com" data-testid="link-contact">
               <Button variant="outline" size="sm">
                 <i className="fas fa-envelope mr-2"></i>Contact Us

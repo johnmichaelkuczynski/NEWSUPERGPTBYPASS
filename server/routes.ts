@@ -8,6 +8,7 @@ import { fileProcessorService } from "./services/fileProcessor";
 import { textChunkerService } from "./services/textChunker";
 import { gptZeroService } from "./services/gptZero";
 import { aiProviderService } from "./services/aiProviders";
+import { walterWritesService } from "./services/walterWrites";
 import { documentGeneratorService } from "./services/documentGenerator";
 import type { RewriteRequest, RewriteResponse } from "@shared/schema";
 
@@ -216,8 +217,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/rewrite", async (req, res) => {
     try {
       const rewriteRequest: RewriteRequest = req.body;
-      if (!rewriteRequest.inputText || !rewriteRequest.provider) {
-        return res.status(400).json({ message: "Input text and provider are required" });
+      if (!rewriteRequest.inputText) {
+        return res.status(400).json({ message: "Input text is required" });
       }
 
       const inputText = rewriteRequest.inputText;
@@ -240,20 +241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewrittenText = await aiProviderService.rewrite(rewriteRequest.provider, {
-          inputText: rewriteRequest.inputText,
-          styleText: rewriteRequest.styleText,
-          contentMixText: rewriteRequest.contentMixText,
-          customInstructions: rewriteRequest.customInstructions,
-          selectedPresets: rewriteRequest.selectedPresets,
-          mixingMode: rewriteRequest.mixingMode,
-        });
-
-        const cleanedRewrittenText = await enforceMeaningAndLength(
-          rewriteRequest.provider,
-          rewriteRequest.inputText,
-          rewrittenText,
-          !!rewriteRequest.styleText?.trim(),
+        const cleanedRewrittenText = cleanMarkup(
+          await walterWritesService.humanize(rewriteRequest.inputText),
         );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
@@ -308,20 +297,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       try {
-        const rewrittenText = await aiProviderService.rewrite(provider || originalJob.provider, {
-          inputText: originalJob.outputText,
-          styleText: originalJob.styleText,
-          contentMixText: originalJob.contentMixText,
-          customInstructions: customInstructions || originalJob.customInstructions,
-          selectedPresets: selectedPresets || originalJob.selectedPresets,
-          mixingMode: originalJob.mixingMode,
-        });
-
-        const cleanedRewrittenText = await enforceMeaningAndLength(
-          provider || originalJob.provider,
-          originalJob.outputText,
-          rewrittenText,
-          !!originalJob.styleText?.trim(),
+        const cleanedRewrittenText = cleanMarkup(
+          await walterWritesService.humanize(originalJob.outputText),
         );
         const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
           ? await gptZeroService.analyzeText(cleanedRewrittenText)
