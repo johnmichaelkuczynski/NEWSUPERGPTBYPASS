@@ -8,7 +8,7 @@ import { fileProcessorService } from "./services/fileProcessor";
 import { textChunkerService } from "./services/textChunker";
 import { gptZeroService } from "./services/gptZero";
 import { aiProviderService } from "./services/aiProviders";
-import { walterWritesService } from "./services/walterWrites";
+import { textTransformerService } from "./services/textTransformer";
 import { documentGeneratorService } from "./services/documentGenerator";
 import type { RewriteRequest, RewriteResponse } from "@shared/schema";
 
@@ -221,11 +221,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Input text is required" });
       }
 
-      const inputText = rewriteRequest.inputText;
-      const inputAnalysis = inputText.length >= 1 && inputText.length <= 150000
-        ? await gptZeroService.analyzeText(inputText)
-        : { aiScore: null };
-
       const rewriteJob = await storage.createRewriteJob({
         inputText: rewriteRequest.inputText,
         styleText: rewriteRequest.styleText,
@@ -236,28 +231,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chunks: [],
         selectedChunkIds: rewriteRequest.selectedChunkIds,
         mixingMode: rewriteRequest.mixingMode,
-        inputAiScore: inputAnalysis.aiScore,
+        inputAiScore: null,
         status: "processing",
       });
 
       try {
         const cleanedRewrittenText = cleanMarkup(
-          await walterWritesService.humanize(rewriteRequest.inputText),
+          await textTransformerService.transform(rewriteRequest.inputText),
         );
-        const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
-          ? await gptZeroService.analyzeText(cleanedRewrittenText)
-          : { aiScore: null };
 
         await storage.updateRewriteJob(rewriteJob.id, {
           outputText: cleanedRewrittenText,
-          outputAiScore: outputAnalysis.aiScore,
+          outputAiScore: null,
           status: "completed",
         });
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
-          inputAiScore: inputAnalysis.aiScore,
-          outputAiScore: outputAnalysis.aiScore,
+          inputAiScore: 0,
+          outputAiScore: 0,
           jobId: rewriteJob.id,
         };
         res.json(response);
@@ -298,22 +290,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         const cleanedRewrittenText = cleanMarkup(
-          await walterWritesService.humanize(originalJob.outputText),
+          await textTransformerService.transform(originalJob.outputText),
         );
-        const outputAnalysis = cleanedRewrittenText.length >= 1 && cleanedRewrittenText.length <= 150000
-          ? await gptZeroService.analyzeText(cleanedRewrittenText)
-          : { aiScore: null };
 
         await storage.updateRewriteJob(rewriteJob.id, {
           outputText: cleanedRewrittenText,
-          outputAiScore: outputAnalysis.aiScore,
+          outputAiScore: null,
           status: "completed",
         });
 
         const response: RewriteResponse = {
           rewrittenText: cleanedRewrittenText,
           inputAiScore: originalJob.outputAiScore || 0,
-          outputAiScore: outputAnalysis.aiScore,
+          outputAiScore: 0,
           jobId: rewriteJob.id,
         };
         res.json(response);

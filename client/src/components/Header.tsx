@@ -62,11 +62,10 @@ export default function Header({}: HeaderProps) {
             >
               <img src={zhiLogo} alt="Zhi Systems" className="h-7 w-7 object-contain" />
             </a>
-            <h1 className="text-2xl font-bold text-gray-900">GPT Bypass</h1>
-            <span className="text-sm text-gray-500 font-medium">AI Text Rewriter</span>
+            <h1 className="text-2xl font-bold text-gray-900">Text Transformer</h1>
+            <span className="text-sm text-gray-500 font-medium">Direct, practical writing</span>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-600">Humanization by Walter Writes</span>
             <a href="mailto:johnmichaelkuczynski@gmail.com" data-testid="link-contact">
               <Button variant="outline" size="sm">
                 <i className="fas fa-envelope mr-2"></i>Contact Us

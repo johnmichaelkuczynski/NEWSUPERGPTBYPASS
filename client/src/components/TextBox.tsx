@@ -34,6 +34,9 @@ interface TextBoxProps {
   onEnterSubmit?: () => void;
   canSubmit?: boolean;
   containerClassName?: string;
+  actionLabel?: string;
+  repeatActionLabel?: string;
+  showAiScore?: boolean;
 }
 
 export default function TextBox({
@@ -62,6 +65,9 @@ export default function TextBox({
   onEnterSubmit,
   canSubmit = false,
   containerClassName,
+  actionLabel = "Humanize",
+  repeatActionLabel = "Re-rewrite Output",
+  showAiScore = true,
 }: TextBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -147,7 +153,7 @@ export default function TextBox({
                   disabled={!canSubmit}
                   className="font-semibold"
                 >
-                  <i className="fas fa-wand-magic-sparkles mr-1"></i>Humanize
+                  <i className="fas fa-wand-magic-sparkles mr-1"></i>{actionLabel}
                 </Button>
                 {onClear && value && (
                   <Button
@@ -216,7 +222,7 @@ export default function TextBox({
         </div>
         
         {/* AI Detection Score */}
-        <div className="flex items-center justify-between">
+        {showAiScore && <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">GPTZero AI Detection:</span>
           <div className="flex items-center space-x-2">
             {isLoading ? (
@@ -237,7 +243,7 @@ export default function TextBox({
               <span className="text-sm text-gray-400">Not analyzed</span>
             )}
           </div>
-        </div>
+        </div>}
       </div>
       
       <div className="text-box-content">
@@ -286,7 +292,7 @@ export default function TextBox({
               disabled={!canReRewrite}
             >
               <i className="fas fa-redo mr-2"></i>
-              Re-rewrite Output
+              {repeatActionLabel}
             </Button>
           )}
         </div>
