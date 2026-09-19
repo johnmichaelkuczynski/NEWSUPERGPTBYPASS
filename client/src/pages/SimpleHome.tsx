@@ -10,6 +10,7 @@ import type { RewriteResponse } from "@shared/schema";
 export default function SimpleHome() {
   const [inputText, setInputText] = useState("");
   const [outputText, setOutputText] = useState("");
+  const [styleText, setStyleText] = useState("");
   const [inputAiScore, setInputAiScore] = useState<number | null>(null);
   const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -117,6 +118,21 @@ export default function SimpleHome() {
               repeatActionLabel="Retransform"
               showAiScore
               containerClassName="h-[calc(100vh-7rem)] min-h-[620px]"
+            />
+          </div>
+          <div className="mt-4">
+            <TextBox
+              title="Style Sample"
+              icon="fas fa-pen-nib"
+              placeholder="Type, paste, upload, or drag and drop a style sample here..."
+              value={styleText}
+              onChange={setStyleText}
+              isLoading={false}
+              supportFileUpload
+              wordCount={styleText.trim().split(/\s+/).filter(Boolean).length}
+              onClear={() => setStyleText("")}
+              showAiScore={false}
+              containerClassName="h-[420px] min-h-[320px]"
             />
           </div>
         </div>

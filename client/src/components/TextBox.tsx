@@ -79,10 +79,7 @@ export default function TextBox({
   
   const { uploadFile, isUploading } = isBoxA ? boxAUpload : regularUpload;
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     try {
       const result = await uploadFile(file);
       onChange(result.document.content);
@@ -104,11 +101,25 @@ export default function TextBox({
         variant: "destructive",
       });
     }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    await processFile(file);
 
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    if (!supportFileUpload || readOnly) return;
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file) await processFile(file);
   };
 
   const handleCopy = () => {
@@ -137,7 +148,11 @@ export default function TextBox({
   };
 
   return (
-    <div className={cn("text-box-container", containerClassName ?? "h-[500px]")}>
+    <div
+      className={cn("text-box-container", containerClassName ?? "h-[500px]")}
+      onDragOver={supportFileUpload ? (event) => event.preventDefault() : undefined}
+      onDrop={handleDrop}
+    >
       <div className="text-box-header">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
