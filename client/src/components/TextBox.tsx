@@ -145,6 +145,17 @@ export default function TextBox({
             {title}
           </h2>
           <div className="flex items-center space-x-2">
+            {!isBoxA && showReRewrite && (
+              <Button
+                size="sm"
+                onClick={onReRewrite}
+                disabled={!canReRewrite}
+                className="font-semibold"
+              >
+                <i className="fas fa-redo mr-1"></i>
+                {repeatActionLabel}
+              </Button>
+            )}
             {isBoxA && onEnterSubmit && (
               <div className="flex flex-col gap-2">
                 <Button
@@ -266,7 +277,7 @@ export default function TextBox({
       </div>
       
       {/* Footer with additional controls */}
-      {(showChunking || showReRewrite) && (
+      {showChunking && (
         <div className="text-box-footer">
           {showChunking && (
             <div className="flex items-center justify-between">
@@ -283,17 +294,6 @@ export default function TextBox({
                 Select Chunks ({selectedChunkCount}/{chunkCount})
               </Button>
             </div>
-          )}
-          
-          {showReRewrite && (
-            <Button
-              className="w-full"
-              onClick={onReRewrite}
-              disabled={!canReRewrite}
-            >
-              <i className="fas fa-redo mr-2"></i>
-              {repeatActionLabel}
-            </Button>
           )}
         </div>
       )}

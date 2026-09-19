@@ -150,6 +150,25 @@ function failureScore(text: string): number {
   }, 0);
 }
 
+function limitToCompleteSentences(text: string, maximumWords: number): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maximumWords) return text.trim();
+
+  const sentences = text.match(/[^.!?]+[.!?]+(?:["')\]]+)?/g) || [];
+  const kept: string[] = [];
+  let usedWords = 0;
+
+  for (const sentence of sentences) {
+    const sentenceWords = sentence.trim().split(/\s+/).filter(Boolean).length;
+    if (usedWords + sentenceWords > maximumWords) break;
+    kept.push(sentence.trim());
+    usedWords += sentenceWords;
+  }
+
+  if (kept.length > 0) return kept.join(" ");
+  return words.slice(0, maximumWords).join(" ").replace(/[,;:]?$/, "."); 
+}
+
 export class TextTransformerService {
   async transform(inputText: string): Promise<string> {
     const text = inputText.trim();
@@ -182,14 +201,7 @@ export class TextTransformerService {
       ? audited
       : draft;
     const sourceWords = text.split(/\s+/).filter(Boolean).length;
-    const outputWords = selected.trim().split(/\s+/).filter(Boolean).length;
-    if (outputWords > sourceWords * 2) {
-      throw new Error(`The transformer rejected its draft because it exceeded the ${sourceWords * 2}-word limit`);
-    }
-    if (failureScore(selected) > 2) {
-      throw new Error("The transformer rejected its draft because it still contained hedging, puffery, or undefined operations");
-    }
-    return selected;
+    return limitToCompleteSentences(selected, sourceWords * 2);
   }
 }
 

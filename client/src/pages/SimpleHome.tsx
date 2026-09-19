@@ -92,7 +92,7 @@ export default function SimpleHome() {
               canReRewrite={!!lastJobId && !isProcessing}
               onDownload={() => setShowDownloadModal(true)}
               onClear={() => window.location.reload()}
-              repeatActionLabel="Transform Again"
+              repeatActionLabel="Retransform"
               showAiScore={false}
               containerClassName="h-[calc(100vh-7rem)] min-h-[620px]"
             />
