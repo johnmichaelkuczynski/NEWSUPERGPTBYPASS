@@ -37,6 +37,8 @@ interface TextBoxProps {
   actionLabel?: string;
   repeatActionLabel?: string;
   showAiScore?: boolean;
+  isAnalyzing?: boolean;
+  aiScoreError?: string | null;
 }
 
 export default function TextBox({
@@ -68,6 +70,8 @@ export default function TextBox({
   actionLabel = "Humanize",
   repeatActionLabel = "Re-rewrite Output",
   showAiScore = true,
+  isAnalyzing = false,
+  aiScoreError,
 }: TextBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -251,8 +255,10 @@ export default function TextBox({
         {showAiScore && <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">GPTZero AI Detection:</span>
           <div className="flex items-center space-x-2">
-            {isLoading ? (
+            {isLoading || isAnalyzing ? (
               <Skeleton className="w-24 h-2" />
+            ) : aiScoreError ? (
+              <span className="text-sm text-red-600" role="status">{aiScoreError}</span>
             ) : aiScore !== null && aiScore !== undefined ? (
               <>
                 <div className="ai-score-bar">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import TextBox from "@/components/TextBox";
@@ -11,11 +11,56 @@ export default function SimpleHome() {
   const [inputText, setInputText] = useState("");
   const [outputText, setOutputText] = useState("");
   const [styleText, setStyleText] = useState("");
+  const [styleDetection, setStyleDetection] = useState<{
+    text: string;
+    score: number | null;
+    pending: boolean;
+    error: string | null;
+  }>({ text: "", score: null, pending: false, error: null });
   const [inputAiScore, setInputAiScore] = useState<number | null>(null);
   const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!styleText.trim()) return;
+    let active = true;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setStyleDetection({ text: styleText, score: null, pending: true, error: null });
+      try {
+        const response = await fetch("/api/analyze-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: styleText }),
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "GPTZero analysis failed");
+        if (typeof data.aiScore !== "number" || !Number.isFinite(data.aiScore)) {
+          throw new Error("GPTZero returned no score");
+        }
+        if (active) {
+          setStyleDetection({ text: styleText, score: data.aiScore, pending: false, error: null });
+        }
+      } catch (error) {
+        if (active) {
+          setStyleDetection({
+            text: styleText,
+            score: null,
+            pending: false,
+            error: error instanceof Error ? error.message : "GPTZero analysis failed",
+          });
+        }
+      }
+    }, 1000);
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [styleText]);
 
   const analyzeText = async (text: string, target: "input" | "output") => {
     try {
@@ -126,12 +171,15 @@ export default function SimpleHome() {
               icon="fas fa-pen-nib"
               placeholder="Type, paste, upload, or drag and drop a style sample here..."
               value={styleText}
+              aiScore={styleDetection.text === styleText ? styleDetection.score : null}
+              isAnalyzing={!!styleText.trim() && (styleDetection.text !== styleText || styleDetection.pending)}
+              aiScoreError={styleDetection.text === styleText ? styleDetection.error : null}
               onChange={setStyleText}
               isLoading={false}
               supportFileUpload
               wordCount={styleText.trim().split(/\s+/).filter(Boolean).length}
               onClear={() => setStyleText("")}
-              showAiScore={false}
+              showAiScore
               containerClassName="h-[420px] min-h-[320px]"
             />
           </div>
