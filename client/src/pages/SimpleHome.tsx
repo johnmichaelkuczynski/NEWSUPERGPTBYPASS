@@ -1,79 +1,23 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import TextBox from "@/components/TextBox";
 import DownloadModal from "@/components/DownloadModal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAiDetection } from "@/hooks/useAiDetection";
 import type { RewriteResponse } from "@shared/schema";
 
 export default function SimpleHome() {
   const [inputText, setInputText] = useState("");
   const [outputText, setOutputText] = useState("");
   const [styleText, setStyleText] = useState("");
-  const [styleDetection, setStyleDetection] = useState<{
-    text: string;
-    score: number | null;
-    pending: boolean;
-    error: string | null;
-  }>({ text: "", score: null, pending: false, error: null });
-  const [inputAiScore, setInputAiScore] = useState<number | null>(null);
-  const [outputAiScore, setOutputAiScore] = useState<number | null>(null);
+  const inputDetection = useAiDetection(inputText);
+  const outputDetection = useAiDetection(outputText);
+  const styleDetection = useAiDetection(styleText);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!styleText.trim()) return;
-    let active = true;
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setStyleDetection({ text: styleText, score: null, pending: true, error: null });
-      try {
-        const response = await fetch("/api/analyze-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: styleText }),
-          signal: controller.signal,
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "GPTZero analysis failed");
-        if (typeof data.aiScore !== "number" || !Number.isFinite(data.aiScore)) {
-          throw new Error("GPTZero returned no score");
-        }
-        if (active) {
-          setStyleDetection({ text: styleText, score: data.aiScore, pending: false, error: null });
-        }
-      } catch (error) {
-        if (active) {
-          setStyleDetection({
-            text: styleText,
-            score: null,
-            pending: false,
-            error: error instanceof Error ? error.message : "GPTZero analysis failed",
-          });
-        }
-      }
-    }, 1000);
-    return () => {
-      active = false;
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [styleText]);
-
-  const analyzeText = async (text: string, target: "input" | "output") => {
-    try {
-      const data = await apiRequest("/api/analyze-text", {
-        method: "POST",
-        body: { text },
-      }) as { aiScore: number };
-      if (target === "input") setInputAiScore(data.aiScore);
-      else setOutputAiScore(data.aiScore);
-    } catch (error) {
-      console.error("AI detection failed:", error);
-    }
-  };
 
   const transformMutation = useMutation({
     mutationFn: async (text: string) =>
@@ -84,7 +28,6 @@ export default function SimpleHome() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setLastJobId(data.jobId);
-      void analyzeText(data.rewrittenText, "output");
       toast({ title: "Transformation Complete", description: "The passage was reconstructed for directness and clarity." });
     },
     onError: (error: Error) => {
@@ -101,7 +44,6 @@ export default function SimpleHome() {
     onSuccess: (data) => {
       setOutputText(data.rewrittenText);
       setLastJobId(data.jobId);
-      void analyzeText(data.rewrittenText, "output");
       toast({ title: "Transformation Complete" });
     },
     onError: (error: Error) => {
@@ -118,7 +60,6 @@ export default function SimpleHome() {
 
   const handleTransform = () => {
     if (canTransform) {
-      void analyzeText(inputText, "input");
       transformMutation.mutate(inputText);
     }
   };
@@ -134,7 +75,9 @@ export default function SimpleHome() {
               icon="fas fa-upload"
               placeholder="Paste or upload the passage to transform..."
               value={inputText}
-              aiScore={inputAiScore}
+              aiScore={inputDetection.score}
+              isAnalyzing={inputDetection.pending}
+              aiScoreError={inputDetection.error}
               onChange={handleInputChange}
               isLoading={false}
               supportFileUpload
@@ -151,7 +94,9 @@ export default function SimpleHome() {
               icon="fas fa-download"
               placeholder="The direct, reconstructed passage will appear here..."
               value={outputText}
-              aiScore={outputAiScore}
+              aiScore={outputDetection.score}
+              isAnalyzing={outputDetection.pending}
+              aiScoreError={outputDetection.error}
               onChange={() => {}}
               isLoading={isProcessing}
               readOnly
@@ -171,9 +116,9 @@ export default function SimpleHome() {
               icon="fas fa-pen-nib"
               placeholder="Type, paste, upload, or drag and drop a style sample here..."
               value={styleText}
-              aiScore={styleDetection.text === styleText ? styleDetection.score : null}
-              isAnalyzing={!!styleText.trim() && (styleDetection.text !== styleText || styleDetection.pending)}
-              aiScoreError={styleDetection.text === styleText ? styleDetection.error : null}
+              aiScore={styleDetection.score}
+              isAnalyzing={styleDetection.pending}
+              aiScoreError={styleDetection.error}
               onChange={setStyleText}
               isLoading={false}
               supportFileUpload

@@ -255,7 +255,9 @@ export default function TextBox({
         {showAiScore && <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">GPTZero AI Detection:</span>
           <div className="flex items-center space-x-2">
-            {isLoading || isAnalyzing ? (
+            {isAnalyzing ? (
+              <span className="text-sm text-gray-600" role="status">Analyzing...</span>
+            ) : isLoading ? (
               <Skeleton className="w-24 h-2" />
             ) : aiScoreError ? (
               <span className="text-sm text-red-600" role="status">{aiScoreError}</span>
