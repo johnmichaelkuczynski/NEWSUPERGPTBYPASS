@@ -4,8 +4,8 @@ import {
   capWords,
   countWords,
   splitTransformationInput,
-  type TransformationStage,
 } from "./transformationProtocol";
+import { postprocessProse } from "./prosePostprocessor";
 
 type Generate = (source: string, prompt: string) => Promise<string>;
 
@@ -18,7 +18,7 @@ export class TextTransformerService {
   private async transformChunk(source: string): Promise<string> {
     let previous = "";
     let lastProse = "";
-    for (const stage of ["D", "E", "B", "N"] as TransformationStage[]) {
+    for (const stage of ["D", "E"] as const) {
       try {
         const result = (await this.generate(
           source, buildStagePrompt(stage, source, previous),
@@ -60,7 +60,14 @@ export class TextTransformerService {
         (chunk) => this.transformChunk(chunk),
       )));
     }
-    return results.join("\n\n");
+    const processed = postprocessProse(results.join("\n\n"));
+    console.info("Code-based B/N applied:", {
+      removedCommentary: processed.removedCommentary,
+      mergedSentences: processed.mergedSentences,
+      repeatedWords: processed.repeatedWords,
+      surfaceEdits: processed.surfaceEdits,
+    });
+    return capWords(processed.text, countWords(text) * 2);
   }
 }
 

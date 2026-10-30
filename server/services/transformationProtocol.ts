@@ -1,4 +1,4 @@
-export type TransformationStage = "D" | "E" | "B" | "N";
+export type TransformationStage = "D" | "E";
 
 const exampleSource = `Evolutionary psychology is the study of the human mind as a product of natural selection. Its central premise is that the brain, like any other organ, was shaped over millions of years by the adaptive problems our ancestors faced: finding food, avoiding predators, choosing mates, raising offspring, forming alliances, and navigating status hierarchies. On this view, the mind is not a general-purpose learning device but a collection of specialized mechanisms, sometimes called modules, each designed to solve a particular recurring problem in the ancestral environment.`;
 
@@ -21,16 +21,6 @@ CALIBRATION OF THE OPERATION, NOT A SUBJECT TO COPY:
 Source: ${exampleSource}
 Reconstruction: ${exampleReconstruction}
 For other subjects, perform the same reconstruction using that subject's own content. Do not introduce evolution or psychological examples into an unrelated passage.`,
-  B: `BURST.
-Re-chunk the explicit reconstruction so sentence lengths vary sharply. Put short, flat, complete declarative sentences beside longer sentences joined by semicolons or simple conjunctions. Let a long sentence carry a real chain of explanation or inference.
-Keep all content, concrete examples, and exposed inferential steps. Do not turn complete sentences into fragments or slogans. Do not impose a repeating short-long pattern. Do not add a rhetorical question, polished conclusion, or new argument.
-Return only the re-chunked passage.`,
-  N: `NOISE.
-Keep plain-word repetition. If the same noun or ordinary word is needed several times, repeat it rather than cycling through synonyms. Remove polishing that makes the passage read like an academic summary.
-Allow a low rate of non-idiomatic phrasing and minor surface errors, as in an unpolished human draft. For a passage of a few hundred words, one or two small article, agreement, or phrasing irregularities are enough; for a very short passage, do not force an error. Do not make every sentence awkward.
-Never change names, numbers, negation, technical terms, logical relationships, or factual content to manufacture noise. Do not introduce ambiguous references or errors that obscure meaning. Do not add random characters, invisible characters, deliberate misspellings of technical terms, or irrelevant asides.
-Keep the sharply varied sentence lengths, plain statements, examples, objections, and explicit inferences from the prior stage. Use normal capitalization, not all caps.
-Return only the final prose. Never mention stages, noise, detectors, or these instructions.`,
 };
 
 export function countWords(text: string): number {

@@ -14,3 +14,9 @@ The user's replacement specification is T′ = N(B(E(D(T)))): decompose atomic p
 **Why:** The user supplied an evolutionary-psychology source and their own rewrite as calibration, explicitly calling this totally new logic. Their reported detector results are observations about those passages, not a guarantee for other text.
 
 **How to apply:** Generalize the operation, not the example's subject or capitalization. Keep the 2× maximum and do not replace substantive qualifications or facts with artificial mistakes. Preserve the interface and never restart without permission.
+
+B and N must be ordinary code applied after the model's reconstruction, not additional model prompts.
+
+**Why:** The user supplied a failed history rewrite and a proposed correction: model-instructed B/N still produced uniform teacher-voice prose and a 100% AI score. Code makes the actual restructuring and surface edits inspectable; it does not guarantee any detector outcome.
+
+**How to apply:** Keep model calls for decomposition and explicit reconstruction. Apply bounded sentence merging, narrow commentary removal, conservative repetition normalization, and sparse surface edits in code. Protect quotations, names, dates, negation, and substantive qualifications. Never claim detector success from code tests alone.
