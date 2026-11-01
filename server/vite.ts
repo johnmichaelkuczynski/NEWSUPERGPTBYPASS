@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type RequestHandler } from "express";
 import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
@@ -41,7 +41,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  const renderIndex: RequestHandler = async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
@@ -64,7 +64,9 @@ export async function setupVite(app: Express, server: Server) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
-  });
+  };
+  app.use("*", renderIndex);
+  return renderIndex;
 }
 
 export function serveStatic(app: Express) {

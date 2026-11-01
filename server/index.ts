@@ -1,4 +1,4 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, Response, NextFunction, RequestHandler } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pdfRouter from "./routes/pdf";
@@ -34,6 +34,15 @@ function watchWritingSamplesFolder() {
 }
 
 const app = express();
+
+// Public startup probes and the landing page must never enter session/auth/DB middleware.
+let renderLandingPage: RequestHandler = (_req, res, next) => {
+  res.sendFile(path.resolve(import.meta.dirname, "public", "index.html"), (err) => {
+    if (err) next(err);
+  });
+};
+app.get("/healthz", (_req, res) => res.status(200).type("text").send("ok"));
+app.get("/", (req, res, next) => renderLandingPage(req, res, next));
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -82,7 +91,7 @@ app.use((req, res, next) => {
   });
 
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    renderLandingPage = await setupVite(app, server);
   } else {
     serveStatic(app);
   }
