@@ -63,7 +63,7 @@
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "express-session": "^1.19.0",
     "framer-motion": "^11.13.1",
     "google-auth-library": "^10.2.1",
@@ -125,11 +125,13 @@
     "bufferutil": "^4.0.8"
   },
   "overrides": {
-    "fast-xml-parser": "4.5.6"
+    "fast-xml-parser": "4.5.6",
+    "proxy-addr": "2.0.8"
   },
   "pnpm": {
     "overrides": {
-      "fast-xml-parser": "4.5.6"
+      "fast-xml-parser": "4.5.6",
+      "proxy-addr": "2.0.8"
     }
   }
 }
