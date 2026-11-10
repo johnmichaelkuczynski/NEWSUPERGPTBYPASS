@@ -14,12 +14,18 @@ const DEFAULT_OPENAI_MODEL = "gpt-5.5";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 // </important_do_not_delete>
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key",
-});
+function requireApiKey(...names: string[]): string {
+  const key = names.map((name) => process.env[name]?.trim()).find(Boolean);
+  if (!key) throw new Error(`${names[0]} is not configured on this deployment.`);
+  return key;
+}
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_ENV_VAR || "default_key",
+// Optional providers are constructed only when the user requests them.
+const getOpenAI = () => new OpenAI({
+  apiKey: requireApiKey("OPENAI_API_KEY", "OPENAI_API_KEY_ENV_VAR"),
+});
+const getAnthropic = () => new Anthropic({
+  apiKey: requireApiKey("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_ENV_VAR"),
 });
 
 const PRESET_TEXT: Record<string,string> = {
@@ -207,7 +213,7 @@ export class AIProviderService {
     
     try {
       console.log("🔥 About to make OpenAI API call...");
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: DEFAULT_OPENAI_MODEL,
         messages: [
           { role: "user", content: prompt }
@@ -230,7 +236,7 @@ export class AIProviderService {
     
     try {
       console.log("🔥 About to make Anthropic API call...");
-      const response = await anthropic.messages.create({
+      const response = await getAnthropic().messages.create({
         model: DEFAULT_ANTHROPIC_MODEL,
         messages: [
           { role: "user", content: prompt }
@@ -253,7 +259,7 @@ export class AIProviderService {
       const response = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY_API_KEY_ENV_VAR || "default_key"}`,
+          'Authorization': `Bearer ${requireApiKey("PERPLEXITY_API_KEY", "PERPLEXITY_API_KEY_ENV_VAR")}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -285,7 +291,7 @@ export class AIProviderService {
       const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.VENICE_API_KEY || "default_key"}`,
+          'Authorization': `Bearer ${requireApiKey("VENICE_API_KEY")}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -318,7 +324,7 @@ export class AIProviderService {
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY_ENV_VAR || "default_key"}`,
+          'Authorization': `Bearer ${requireApiKey("DEEPSEEK_API_KEY", "DEEPSEEK_API_KEY_ENV_VAR")}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

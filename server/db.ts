@@ -1,15 +1,15 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
-
-const connectionString = process.env.NEON_DATABASE_URL;
+// Keep the existing external database intact during the transition. New
+// deployments should set DATABASE_URL only; NEON_DATABASE_URL is a legacy alias.
+const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("NEON_DATABASE_URL must be set in Project Secrets.");
+  throw new Error("DATABASE_URL is required (a standard PostgreSQL connection URL).");
 }
 
-export const pool = new Pool({ connectionString });
+export const pool = new pg.Pool({ connectionString });
+pool.on("error", (error) => console.error("Database pool error:", error));
 export const db = drizzle({ client: pool, schema });

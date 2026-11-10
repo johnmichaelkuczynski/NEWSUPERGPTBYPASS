@@ -4,7 +4,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
-import pg from "pg";
+import { pool } from "./db";
 
 declare global {
   namespace Express {
@@ -38,32 +38,29 @@ export function setupAuth(app: Express) {
       process.env.GOOGLE_CLIENT_SECRET
   );
 
-  const googleEnabled = !!(clientID && clientSecret);
+  const isProduction = process.env.NODE_ENV === "production";
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL || (!isProduction ? `http://localhost:${process.env.PORT || "5000"}` : "");
+  let validPublicBaseUrl = false;
+  try {
+    const parsed = new URL(publicBaseUrl);
+    validPublicBaseUrl = ["http:", "https:"].includes(parsed.protocol) &&
+      (!isProduction || parsed.protocol === "https:") &&
+      !parsed.username && !parsed.password && !parsed.search && !parsed.hash &&
+      parsed.pathname === "/";
+  } catch { /* Missing/invalid public URL disables optional OAuth, not the app. */ }
+  const googleEnabled = !!(clientID && clientSecret && validPublicBaseUrl);
 
   if (!googleEnabled) {
     console.warn(
-      "Google OAuth credentials not found (GOOGLE_LOGIN_CLIENT_ID / GOOGLE_LOGIN_CLIENT_SECRET). Google login disabled."
+      "Google login disabled: configure Google credentials and a valid PUBLIC_BASE_URL (HTTPS in production)."
     );
   }
 
-  // Trust proxy for production (behind Replit's proxy)
+  // Coolify terminates HTTPS at Traefik, one trusted reverse-proxy hop away.
   app.set('trust proxy', 1);
 
   // Database-backed session store
   const PgSession = connectPgSimple(session);
-  const pool = new pg.Pool({
-    connectionString: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-
-  pool.on('error', (err) => {
-    console.error('Session pool error:', err);
-  });
-
-  pool.on('connect', () => {
-    console.log('Session pool connected to database');
-  });
-
   // Session setup with database storage
   const pgStore = new PgSession({
     pool,
@@ -71,8 +68,6 @@ export function setupAuth(app: Express) {
     createTableIfMissing: true,
     errorLog: console.error.bind(console, 'Session store error:'),
   });
-
-  const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction && !process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET environment variable is required in production");
@@ -82,10 +77,11 @@ export function setupAuth(app: Express) {
     session({
       store: pgStore,
       secret: process.env.SESSION_SECRET || "text-intelligence-studio-secret-key",
+      proxy: true,
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: isProduction || !!process.env.REPLIT_DEV_DOMAIN,
+        secure: isProduction,
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -93,7 +89,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  console.log(`Session configured. Secure cookies: ${isProduction || !!process.env.REPLIT_DEV_DOMAIN}`);
+  console.log(`Session configured. Secure cookies: ${isProduction}`);
 
   app.use(passport.initialize());
   app.use(passport.session());
@@ -117,48 +113,8 @@ export function setupAuth(app: Express) {
     // registered in the owner's Google Cloud Console OAuth client.
     const CALLBACK_PATH = "/auth/google/callback";
 
-    const getCallbackURL = () => {
-      if (process.env.NODE_ENV === "production") {
-        const prodDomain = (process.env.REPLIT_DOMAINS || "")
-          .split(",")[0]
-          ?.trim();
-        return `https://${prodDomain || "gptbypass.ink"}${CALLBACK_PATH}`;
-      }
-      if (process.env.REPLIT_DEV_DOMAIN) {
-        return `https://${process.env.REPLIT_DEV_DOMAIN}${CALLBACK_PATH}`;
-      }
-      return `http://localhost:5000${CALLBACK_PATH}`;
-    };
-
-    // Build the callback URL from the domain the visitor is actually on, so
-    // login works from every domain (custom domain, .replit.app, dev preview)
-    // as long as that domain's callback URI is registered in Google Cloud.
-    // Only known app domains are trusted; anything else falls back to the
-    // static default (prevents host-header tampering).
-    const trustedHosts = new Set<string>(
-      [
-        ...(process.env.REPLIT_DOMAINS || "").split(",").map((d) => d.trim()),
-        process.env.REPLIT_DEV_DOMAIN || "",
-        "gptbypass.ink",
-        "www.gptbypass.ink",
-        "localhost:5000",
-      ]
-        .filter(Boolean)
-        .map((h) => h.toLowerCase())
-    );
-
-    const getRequestCallbackURL = (req: any) => {
-      const host = (req.headers["x-forwarded-host"] || req.headers.host || "")
-        .toString()
-        .split(",")[0]
-        .trim()
-        .toLowerCase();
-      if (host && trustedHosts.has(host)) {
-        const proto = host.startsWith("localhost") ? "http" : "https";
-        return `${proto}://${host}${CALLBACK_PATH}`;
-      }
-      return getCallbackURL();
-    };
+    // Never derive OAuth redirects from untrusted Host/forwarded headers.
+    const getCallbackURL = () => new URL(CALLBACK_PATH, publicBaseUrl).toString();
 
     passport.use(
       new GoogleStrategy(
@@ -214,44 +170,57 @@ export function setupAuth(app: Express) {
     );
 
     // Click 1: button links here -> 302 straight to Google's account chooser.
-    // callbackURL is computed per request so login works from every domain.
+    // Always use the configured public origin, including behind Traefik.
     const loginHandler = (req: any, res: any, next: any) =>
       passport.authenticate("google", {
         scope: ["openid", "email", "profile"],
         prompt: "select_account",
-        callbackURL: getRequestCallbackURL(req),
+        callbackURL: getCallbackURL(),
       } as any)(req, res, next);
     app.get("/api/auth/google", loginHandler);
     app.get("/auth/google", loginHandler);
 
     // Click 2 happens on Google; the callback lands the user inside the app
-    const callbackHandler = [
-      (req: any, res: any, next: any) =>
-        passport.authenticate("google", {
-          failureRedirect: "/?error=auth_failed",
-          callbackURL: getRequestCallbackURL(req),
-        } as any)(req, res, next),
-      (req: any, res: any) => {
-        // Record a login event on every successful sign-in
-        (async () => {
-          try {
-            if (req.user) {
-              await storage.recordVisit(req.user.id, req.user.email ?? null);
-            }
-          } catch (visitErr) {
-            console.error("Failed to record login event:", visitErr);
+    const callbackHandler: RequestHandler = (req, res, next) => {
+      passport.authenticate("google", { callbackURL: getCallbackURL() } as any,
+        (error: any, user: Express.User | false, info: any) => {
+          if (error || !user) {
+            console.error("Google OAuth callback failed:", error || info || req.query.error || "No user returned");
+            return res.redirect("/?error=auth_failed");
           }
-        })();
-        req.session.save(() => {
-          res.redirect("/");
-        });
-      },
-    ];
-    app.get(CALLBACK_PATH, ...callbackHandler);
+          req.logIn(user, (loginError) => {
+            if (loginError) {
+              console.error("Google OAuth session login failed:", loginError);
+              return res.redirect("/?error=auth_failed");
+            }
+            // Record a login event on every successful sign-in.
+            (async () => {
+              try {
+                if (req.user) {
+                  await storage.recordVisit(req.user.id, req.user.email ?? null);
+                }
+              } catch (visitErr) {
+                console.error("Failed to record login event:", visitErr);
+              }
+            })();
+            req.session.save((saveError) => {
+              if (saveError) {
+                console.error("Google OAuth session save failed:", saveError);
+                return res.redirect("/?error=auth_failed");
+              }
+              res.redirect("/");
+            });
+          });
+        })(req, res, next);
+    };
+    app.get(CALLBACK_PATH, callbackHandler);
     // Legacy alias in case the /api-prefixed URI is registered instead
-    app.get("/api/auth/google/callback", ...callbackHandler);
+    app.get("/api/auth/google/callback", callbackHandler);
 
     console.log("Google OAuth configured. Callback URL:", getCallbackURL());
+  } else {
+    app.get(["/auth/google", "/api/auth/google", "/auth/google/callback", "/api/auth/google/callback"],
+      (_req, res) => res.status(503).json({ error: "Google login is not configured on this deployment." }));
   }
 
   app.get("/api/auth/user", (req, res) => {

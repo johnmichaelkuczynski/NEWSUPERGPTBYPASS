@@ -5,15 +5,15 @@ export interface GPTZeroResult {
 }
 
 export class GPTZeroService {
-  private readonly API_KEY = process.env.GPTZERO_API_KEY;
   private readonly API_URL = "https://api.gptzero.me/v2/predict/text";
 
   async analyzeText(text: string): Promise<GPTZeroResult> {
-    if (!this.API_KEY) {
+    const apiKey = process.env.GPTZERO_API_KEY;
+    if (!apiKey) {
       throw new Error('GPTZero API key not configured');
     }
 
-    const trimmedKey = this.API_KEY.trim();
+    const trimmedKey = apiKey.trim();
 
     try {
       const response = await fetch(this.API_URL, {

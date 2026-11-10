@@ -1,2 +1,3 @@
 - [Google OAuth reinstatement](google-oauth-passport.md) — canonical Passport.js Google OAuth pattern this user demands; never substitute Clerk/Replit Auth/Auth.js.
 - [Direct transformation quality](direct-transformation-quality.md) — user's D→E→B→N replacement protocol; always return completed prose, without quality rejection or detector guarantees.
+- [Coolify deployment](coolify-deployment.md) — production target is portable Docker/linux-arm64 behind Traefik HTTPS; preserve existing PostgreSQL records and direct OAuth.
